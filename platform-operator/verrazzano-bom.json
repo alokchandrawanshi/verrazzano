@@ -239,14 +239,18 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
+              "registry": "iad.ocir.io",
+              "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
               "image": "opensearch",
-              "tag": "1.2.3-20220810140719-c1dbc115d8a",
+              "tag": "2.3.0",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
+              "registry": "iad.ocir.io",
+              "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20221011085109-c206c8b25f",
-              "helmFullImageKey": "monitoringOperator.kibanaImage"
+              "tag": "2.3.0-2",
+              "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "image": "nginx-ingress-controller",
