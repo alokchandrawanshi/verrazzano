@@ -968,7 +968,8 @@ type FluentdComponent struct {
 	InstallOverrides `json:",inline"`
 	// The Oracle Cloud Infrastructure Logging configuration.
 	// +optional
-	OCI *OciLoggingConfiguration `json:"oci,omitempty"`
+	OCI            *OciLoggingConfiguration `json:"oci,omitempty"`
+	IndexTemplates []OpenSearchTemplate     `json:"openSearchIndexTemplates,omitempty"`
 }
 
 // WebLogicOperatorComponent specifies the WebLogic Kubernetes Operator configuration.
@@ -1142,4 +1143,8 @@ type Overrides struct {
 	// Configure overrides using inline YAML.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
+}
+
+type OpenSearchTemplate struct {
+	Template *apiextensionsv1.JSON `json:"template,omitempty"`
 }

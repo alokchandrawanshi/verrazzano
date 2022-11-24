@@ -445,6 +445,7 @@ func convertFluentdToV1Beta1(src *FluentdComponent) *v1beta1.FluentdComponent {
 		OpenSearchSecret:  src.ElasticsearchSecret,
 		OCI:               convertOCILoggingConfigurationToV1Beta1(src.OCI),
 		InstallOverrides:  convertInstallOverridesToV1Beta1(src.InstallOverrides),
+		IndexTemplates:    convertIndexTemplatesToV1Beta1(src.IndexTemplates),
 	}
 }
 
@@ -905,6 +906,16 @@ func ConvertValueOverridesToV1Beta1(overrides []Overrides) []v1beta1.Overrides {
 			ConfigMapRef: override.ConfigMapRef,
 			SecretRef:    override.SecretRef,
 			Values:       override.Values.DeepCopy(),
+		})
+	}
+	return out
+}
+
+func convertIndexTemplatesToV1Beta1(in []OpenSearchTemplate) []v1beta1.OpenSearchTemplate {
+	var out []v1beta1.OpenSearchTemplate
+	for _, oIn := range in {
+		out = append(out, v1beta1.OpenSearchTemplate{
+			Template: oIn.Template,
 		})
 	}
 	return out
