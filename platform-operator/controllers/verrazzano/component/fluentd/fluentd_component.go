@@ -143,6 +143,9 @@ func (c fluentdComponent) checkEnabled(old *v1beta1.Verrazzano, new *v1beta1.Ver
 // PostInstall - post-install, clean up temp files
 func (c fluentdComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
+	if err := updateOpenSearchIndexTemplate(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PostInstall(ctx)
 }
 

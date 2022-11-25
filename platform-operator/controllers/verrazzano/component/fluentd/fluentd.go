@@ -6,8 +6,10 @@ package fluentd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -239,4 +241,52 @@ func getFluentdManagedResources() []common.HelmManagedResource {
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 	}
+}
+
+func updateOpenSearchIndexTemplate(ctx spi.ComponentContext) error {
+	if ctx.EffectiveCR().Spec.Components.Fluentd == nil {
+		return nil
+	}
+
+	openSearchIndexTemplate, err := mergeIndexTemplates(ctx.EffectiveCR())
+	if err != nil {
+		return ctx.Log().ErrorfNewErr(fmt.Sprintf("Failed to merge OpenSearch templates: %v", err))
+	}
+
+	fluentdConfigCM := &corev1.ConfigMap{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: fluentdConfig, Namespace: ComponentNamespace}, fluentdConfigCM); err != nil {
+		return ctx.Log().ErrorfNewErr(fmt.Sprintf("Failed to find ConfigMap %s: %v", fluentdConfig, err))
+	}
+
+	fluentdConfigCM.Data[indexTemplateName] = string(openSearchIndexTemplate)
+
+	if err := ctx.Client().Update(context.TODO(), fluentdConfigCM); err != nil {
+		return ctx.Log().ErrorfNewErr(fmt.Sprintf("Failed to update ConfigMap %s: %v", fluentdConfig, err))
+	}
+
+	if err := restartFluentd(ctx); err != nil {
+		return ctx.Log().ErrorfNewErr(fmt.Sprintf("Failed to restart Fluentd daemonset: %v", err))
+	}
+	return nil
+}
+
+func restartFluentd(ctx spi.ComponentContext) error {
+	ctx.Log().Debug("Restarting Fluentd")
+	daemonSet := &appsv1.DaemonSet{}
+	dsName := types.NamespacedName{Name: vzconst.FluentdDaemonSetName, Namespace: constants.VerrazzanoSystemNamespace}
+
+	if err := ctx.Client().Get(context.TODO(), dsName, daemonSet); err != nil {
+		return err
+	}
+
+	if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+		daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+
+	if err := ctx.Client().Update(context.TODO(), daemonSet); err != nil {
+		return err
+	}
+
+	return nil
 }

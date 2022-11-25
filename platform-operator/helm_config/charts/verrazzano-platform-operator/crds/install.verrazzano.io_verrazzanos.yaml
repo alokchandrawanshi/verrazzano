@@ -864,6 +864,13 @@ spec:
                         - defaultAppLogId
                         - systemLogId
                         type: object
+                      openSearchIndexTemplates:
+                        items:
+                          properties:
+                            template:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
                       overrides:
                         items:
                           properties:
@@ -4482,6 +4489,13 @@ spec:
                         - defaultAppLogId
                         - systemLogId
                         type: object
+                      openSearchIndexTemplates:
+                        items:
+                          properties:
+                            template:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
                       opensearchSecret:
                         type: string
                       opensearchURL:

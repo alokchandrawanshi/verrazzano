@@ -9,6 +9,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const indexTemplateName = "opensearch-template-verrazzano.json"
 const baseTemplate = `
     {
       "index_patterns":[
@@ -71,24 +72,19 @@ const baseTemplate = `
     }
 `
 
-func mergeIndexTemplates(vz *vzapi.Verrazzano) (string, error) {
+func mergeIndexTemplates(vz *vzapi.Verrazzano) ([]byte, error) {
 	baseYaml, err := yaml.JSONToYAML([]byte(baseTemplate))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	customTemplates := vz.Spec.Components.Fluentd.IndexTemplates
 
 	customTemplateYamls := []string{}
 
 	for _, template := range customTemplates {
-		templateJSON, err := yaml.Marshal(template.Template)
+		templateYaml, err := yaml.Marshal(template.Template)
 		if err != nil {
-			return "", err
-		}
-
-		templateYaml, err := yaml.JSONToYAML(templateJSON)
-		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		customTemplateYamls = append([]string{string(templateYaml)}, customTemplateYamls...)
@@ -97,8 +93,12 @@ func mergeIndexTemplates(vz *vzapi.Verrazzano) (string, error) {
 
 	mergedYaml, err := yaml2.ReplacementMerge(customTemplateYamls...)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return mergedYaml, nil
+	mergedJSON, err := yaml.YAMLToJSON([]byte(mergedYaml))
+	if err != nil {
+		return nil, err
+	}
+	return mergedJSON, nil
 }
