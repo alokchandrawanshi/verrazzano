@@ -6,6 +6,8 @@ package fluentd
 import (
 	"context"
 	"fmt"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -258,14 +260,20 @@ func updateOpenSearchIndexTemplate(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr(fmt.Sprintf("Failed to find ConfigMap %s: %v", fluentdConfig, err))
 	}
 
-	fluentdConfigCM.Data[indexTemplateName] = string(openSearchIndexTemplate)
+	operationResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), fluentdConfigCM, func() error {
+		fluentdConfigCM.Data[indexTemplateName] = string(openSearchIndexTemplate)
+		return nil
+	})
 
-	if err := ctx.Client().Update(context.TODO(), fluentdConfigCM); err != nil {
+	if err != nil {
 		return ctx.Log().ErrorfNewErr(fmt.Sprintf("Failed to update ConfigMap %s: %v", fluentdConfig, err))
 	}
 
-	if err := restartFluentd(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr(fmt.Sprintf("Failed to restart Fluentd daemonset: %v", err))
+	if operationResult == controllerutil.OperationResultUpdated {
+		// restart fluentd daemonset if configmap was updated
+		if err := restartFluentd(ctx); err != nil {
+			return err
+		}
 	}
 	return nil
 }
