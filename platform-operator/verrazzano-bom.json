@@ -154,12 +154,12 @@
               "tag": "v0.2.6-20221005161115-fee4a23"
             },
             {
-              "image": "fleet-agent",
-              "tag": "v0.3.11-20221005160548-f5e4fc9"
+              "image": "fleet-agent-jenkins",
+              "tag": "20221130153816-2fe6b0c"
             },
             {
-              "image": "fleet",
-              "tag": "v0.3.11-20221005160548-f5e4fc9"
+              "image": "fleet-jenkins",
+              "tag": "20221130153816-2fe6b0c"
             },
             {
               "image": "gitjob",
