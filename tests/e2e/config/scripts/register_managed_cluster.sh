@@ -113,12 +113,14 @@ else
     description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
 EOF
 
-  retries=0
-  while [ ${retries} -lt 10 ] && [ "$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc -n verrazzano-mc ${MANAGED_CLUSTER_NAME} -o jsonpath='{.status.rancherRegistration.status}')" != 'Completed' ] ; do
-    echo "Verrazzano Rancher registration incomplete, checking again in 30s"
-    ((retries=retries+1))
-    sleep 30
-  done
+  # wait for VMC Rancher registration to complete
+  echo "Waiting for VMC ${MANAGED_CLUSTER_NAME} to report successful Rancher registration"
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=jsonpath='{.status.rancherRegistration.status}'=Completed --timeout=300s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
+  if [ $? -ne 0 ]; then
+    echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 300 seconds. Registration failed."
+    exit 1
+  fi
+
 fi
 
 echo "----------BEGIN VMC ${MANAGED_CLUSTER_NAME} contents----------"
