@@ -57,6 +57,8 @@ const (
 	ReconcileCounter               metricName = "reconcile counter"
 	ReconcileError                 metricName = "reconcile error"
 	ReconcileDuration              metricName = "reconcile duration"
+	AvailableComponents            metricName = "available components"
+	EnabledComponents              metricName = "enabled components"
 	authproxyMetricName            metricName = authproxy.ComponentName
 	oamMetricName                  metricName = oam.ComponentName
 	appoperMetricName              metricName = appoper.ComponentName
@@ -104,7 +106,12 @@ func RequiredInitialization() {
 			simpleGaugeMetricMap:   initSimpleGaugeMetricMap(),
 			durationMetricMap:      initDurationMetricMap(),
 			metricsComponentMap:    initMetricComponentMap(),
+			componentHealth:        initComponentHealthMetrics(),
 		},
+	}
+	// initialize component availability metric to false
+	for _, metricComponent := range MetricsExp.internalData.metricsComponentMap {
+		MetricsExp.internalData.componentHealth.SetComponentHealth(metricComponent.metricName, false, false)
 	}
 
 }
@@ -118,6 +125,7 @@ func RegisterMetrics(log *zap.SugaredLogger) {
 // This function returns a pointer to a new MetricComponent Object
 func newMetricsComponent(name string) *MetricsComponent {
 	return &MetricsComponent{
+		metricName: name,
 		latestInstallDuration: &SimpleGaugeMetric{
 
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -155,43 +163,65 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 // This function initializes the metricComponentMap for the metricsExporter object
 func initMetricComponentMap() map[metricName]*MetricsComponent {
 	return map[metricName]*MetricsComponent{
-		authproxyMetricName:            newMetricsComponent("authproxy"),
-		oamMetricName:                  newMetricsComponent("oam"),
-		appoperMetricName:              newMetricsComponent("appoper"),
-		istioMetricName:                newMetricsComponent("istio"),
-		weblogicMetricName:             newMetricsComponent("weblogic"),
-		nginxMetricName:                newMetricsComponent("nginx"),
-		certmanagerMetricName:          newMetricsComponent("certManager"),
-		clusterOperatorMetricName:      newMetricsComponent("cluster_operator"),
-		externaldnsMetricName:          newMetricsComponent("externalDNS"),
-		rancherMetricName:              newMetricsComponent("rancher"),
-		verrazzanoMetricName:           newMetricsComponent("verrazzano"),
-		vmoMetricName:                  newMetricsComponent("verrazzano_monitoring_operator"),
-		opensearchMetricName:           newMetricsComponent("opensearch"),
-		opensearchdashboardsMetricName: newMetricsComponent("opensearch_dashboards"),
-		grafanaMetricName:              newMetricsComponent("grafana"),
-		coherenceMetricName:            newMetricsComponent("coherence"),
-		mysqlMetricName:                newMetricsComponent("mysql"),
-		mysqlOperatorMetricName:        newMetricsComponent("mysql_operator"),
-		keycloakMetricname:             newMetricsComponent("keycloak"),
-		kialiMetricName:                newMetricsComponent("kiali"),
-		promoperatorMetricname:         newMetricsComponent("prometheus_operator"),
-		promadapterMetricname:          newMetricsComponent("prometheus_adapter"),
-		kubestatemmetricsMetricName:    newMetricsComponent("kube_state_metrics"),
-		pushgatewayMetricName:          newMetricsComponent("prometheus_push_gateway"),
-		promnodeexporterMetricname:     newMetricsComponent("prometheus_node_exporter"),
-		jaegeroperatorMetricName:       newMetricsComponent("jaeger_operator"),
-		consoleMetricName:              newMetricsComponent("verrazzano_console"),
-		fluentdMetricName:              newMetricsComponent("fluentd"),
-		veleroMetricName:               newMetricsComponent("velero"),
-		rancherBackupMetricName:        newMetricsComponent("rancher-backup"),
-		networkpoliciesMetricName:      newMetricsComponent("networkpolicies"),
+		authproxyMetricName:            newMetricsComponent(authproxy.ComponentJSONName),
+		oamMetricName:                  newMetricsComponent(oam.ComponentJSONName),
+		appoperMetricName:              newMetricsComponent(appoper.ComponentJSONName),
+		istioMetricName:                newMetricsComponent(istio.ComponentJSONName),
+		weblogicMetricName:             newMetricsComponent(weblogic.ComponentJSONName),
+		nginxMetricName:                newMetricsComponent(nginx.ComponentJSONName),
+		certmanagerMetricName:          newMetricsComponent(certmanager.ComponentJSONName),
+		clusterOperatorMetricName:      newMetricsComponent(clusteroperator.ComponentJSONName),
+		externaldnsMetricName:          newMetricsComponent(externaldns.ComponentJSONName),
+		rancherMetricName:              newMetricsComponent(rancher.ComponentJSONName),
+		verrazzanoMetricName:           newMetricsComponent(verrazzano.ComponentJSONName),
+		vmoMetricName:                  newMetricsComponent(vmo.ComponentJSONName),
+		opensearchMetricName:           newMetricsComponent(opensearch.ComponentJSONName),
+		opensearchdashboardsMetricName: newMetricsComponent(opensearchdashboards.ComponentJSONName),
+		grafanaMetricName:              newMetricsComponent(grafana.ComponentJSONName),
+		coherenceMetricName:            newMetricsComponent(coherence.ComponentJSONName),
+		mysqlMetricName:                newMetricsComponent(mysql.ComponentJSONName),
+		mysqlOperatorMetricName:        newMetricsComponent(mysqloperator.ComponentJSONName),
+		keycloakMetricname:             newMetricsComponent(keycloak.ComponentJSONName),
+		kialiMetricName:                newMetricsComponent(kiali.ComponentJSONName),
+		promoperatorMetricname:         newMetricsComponent(promoperator.ComponentJSONName),
+		promadapterMetricname:          newMetricsComponent(promadapter.ComponentJSONName),
+		kubestatemmetricsMetricName:    newMetricsComponent(kubestatemetrics.ComponentJSONName),
+		pushgatewayMetricName:          newMetricsComponent(pushgateway.ComponentJSONName),
+		promnodeexporterMetricname:     newMetricsComponent(promnodeexporter.ComponentJSONName),
+		jaegeroperatorMetricName:       newMetricsComponent(jaegeroperator.ComponentJSONName),
+		consoleMetricName:              newMetricsComponent(console.ComponentJSONName),
+		fluentdMetricName:              newMetricsComponent(fluentd.ComponentJSONName),
+		veleroMetricName:               newMetricsComponent(velero.ComponentJSONName),
+		rancherBackupMetricName:        newMetricsComponent(rancherbackup.ComponentJSONName),
+		networkpoliciesMetricName:      newMetricsComponent(networkpolicies.ComponentJSONName),
+	}
+}
+
+func initComponentHealthMetrics() *ComponentHealth {
+	return &ComponentHealth{
+		available: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vpo_component_health",
+			Help: "Is component enabled and available",
+		}, []string{"component"}),
 	}
 }
 
 // This function initializes the simpleGaugeMetricMap for the metricsExporter object
 func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
-	return map[metricName]*SimpleGaugeMetric{}
+	return map[metricName]*SimpleGaugeMetric{
+		AvailableComponents: {
+			metric: prometheus.NewGauge(prometheus.GaugeOpts{
+				Name: "vpo_component_health_count",
+				Help: "The number of currently available Verrazzano components",
+			}),
+		},
+		EnabledComponents: {
+			metric: prometheus.NewGauge(prometheus.GaugeOpts{
+				Name: "vpo_component_enabled_count",
+				Help: "The number of currently enabled Verrazzano components",
+			}),
+		},
+	}
 }
 
 // This function initializes the durationMetricMap for the metricsExporter object
@@ -271,6 +301,8 @@ func registerMetricsHandlers(log *zap.SugaredLogger) {
 		log.Errorf("Failed to register metrics for VPO %v \n", err)
 		time.Sleep(time.Second)
 	}
+	// register component health metrics vector
+	MetricsExp.internalConfig.registry.MustRegister(MetricsExp.internalData.componentHealth.available)
 }
 
 // This function initializes the failedMetrics array
@@ -334,6 +366,9 @@ func InitializeAllMetricsArray() {
 	for _, value := range MetricsExp.internalData.durationMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
+	for _, value := range MetricsExp.internalData.simpleGaugeMetricMap {
+		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
+	}
 	for _, value := range MetricsExp.internalData.metricsComponentMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.latestInstallDuration.metric, value.latestUpgradeDuration.metric)
 	}
@@ -382,4 +417,14 @@ func GetMetricComponent(name metricName) (*MetricsComponent, error) {
 		return nil, fmt.Errorf("%v not found in metricsComponentMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return metricComponent, nil
+}
+
+// SetComponentAvailabilityMetric updates the components availability status metric
+func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAvailability, isEnabled bool) error {
+	compMetric, err := GetMetricComponent(metricName(name))
+	if err != nil {
+		return err
+	}
+	MetricsExp.internalData.componentHealth.SetComponentHealth(compMetric.metricName, availability == vzapi.ComponentAvailable, isEnabled)
+	return nil
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
+	vcoClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -456,27 +457,19 @@ func createClientset(config *restclient.Config) (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
-// GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
-func GetVerrazzanoManagedClusterClientset() (*vpoClient.Clientset, error) {
-	config, err := k8sutil.GetKubeConfig()
+// GetClusterOperatorClientset returns the Kubernetes clientset for the Verrazzano Cluster Operator
+// for a given kubeconfig
+func GetClusterOperatorClientset(kubeconfigPath string) (*vcoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	return vpoClient.NewForConfig(config)
+	return vcoClient.NewForConfig(config)
 }
 
 // GetVerrazzanoClientset returns the Kubernetes clientset for the Verrazzano CRD
 func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfig()
-	if err != nil {
-		return nil, err
-	}
-	return vpoClient.NewForConfig(config)
-}
-
-// GetVerrazzanoClientsetInCluster returns the Kubernetes clientset for platform operator given a kubeconfig location
-func GetVerrazzanoClientsetInCluster(kubeconfigPath string) (*vpoClient.Clientset, error) {
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -1012,6 +1005,44 @@ func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespac
 // CreateNamespace creates a namespace
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
 	return CreateNamespaceWithAnnotations(name, labels, nil)
+}
+
+// CreateOrUpdateNamespace creates or updates a namespace
+func CreateOrUpdateNamespace(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	var ns *corev1.Namespace
+	if ns, err = clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{}); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return nil, err
+		}
+		return clientset.CoreV1().Namespaces().Create(context.TODO(),
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        name,
+					Labels:      labels,
+					Annotations: annotations,
+				},
+			}, metav1.CreateOptions{})
+	}
+	ns.Labels = mergeMaps(ns.Labels, labels)
+	ns.Annotations = mergeMaps(ns.Annotations, annotations)
+	return clientset.CoreV1().Namespaces().Update(context.TODO(), ns, metav1.UpdateOptions{})
+}
+
+func mergeMaps(m1 map[string]string, m2 map[string]string) map[string]string {
+	result := m1
+	if result == nil {
+		result = map[string]string{}
+	}
+	// merge keys from m2 into m1, overwriting existing keys of m1.
+	for k, v := range m2 {
+		result[k] = v
+	}
+	return result
 }
 
 func CreateNamespaceWithAnnotations(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {

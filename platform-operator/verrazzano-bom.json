@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221104180228-77e20c949",
-              "dashboard": "v2.6.8-20221104175219-10d4af93",
+              "tag": "v2.6.8-20221123130449-77e20c949",
+              "dashboard": "v2.6.8-20221123125358-b834db59",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221104180228-77e20c949"
+              "tag": "v2.6.8-20221123130449-77e20c949"
             }
           ]
         },
@@ -189,7 +189,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.5.0-20221108044405-1592cc7",
+              "tag": "v1.5.0-20221118195745-5347193",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -201,7 +201,7 @@
             },
             {
               "image": "nginx-prometheus-exporter",
-              "tag": "0.10.0",
+              "tag": "v0.10.0-20221130224901-85fea23b",
               "helmFullImageKey": "api.metricsImageName",
               "helmTagKey": "api.metricsImageVersion"
             }
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221102141717-708b4bf",
+              "tag": "v1.5.0-20221121231653-ed610f6",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -239,14 +239,18 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
-              "image": "opensearch-aio",
-              "tag": "2.3.0-oracle1",
+              "registry": "iad.ocir.io",
+              "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
+              "image": "opensearch",
+              "tag": "2.3.0",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "opensearch-dashboards-aio",
-              "tag": "2.3.0-oracle2",
-              "helmFullImageKey": "monitoringOperator.kibanaImage"
+              "registry": "iad.ocir.io",
+              "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
+              "image": "opensearch-dashboards",
+              "tag": "2.3.0-1",
+              "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "image": "nginx-ingress-controller",

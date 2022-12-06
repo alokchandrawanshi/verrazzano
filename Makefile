@@ -46,6 +46,8 @@ clean: ## remove coverage and test results
 	find . -name coverage.html -exec rm {} \;
 	find . -name coverage.raw.cov -exec rm {} \;
 	find . -name \*-test-result.xml -exec rm {} \;
+	find . -name coverage.xml -exec rm {} \;
+	find . -name unit-test-coverage-number.txt -exec rm {} \;
 
 ##@ Build
 
@@ -57,7 +59,7 @@ docker-push: ## build and push all images
 
 .PHONY: create-test-deploy
 create-test-deploy: docker-push
-	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
+	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VZ_CLUSTER_OP_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
 
 .PHONY: test-platform-operator-install
 test-platform-operator-install:
@@ -85,13 +87,18 @@ precommit-check: check check-tests copyright-check
 precommit-build:
 	go build ./...
 
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html
 
+.PHONY: unit-test-coverage-ratcheting
+unit-test-coverage-ratcheting:
+	${SCRIPT_DIR}/coverage-number-comparison.sh
+
 .PHONY: unit-test
 unit-test:
-	go test $$(go list ./... | grep -Ev /tests/e2e)
+	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr")
 
 #
 #  Compliance check targets

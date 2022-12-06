@@ -65,6 +65,8 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
               replicaCount: 1
+    clusterOperator:
+      enabled: true
     coherenceOperator:
       enabled: true
     console:
@@ -117,7 +119,7 @@ spec:
             - master
     fluentd:
       elasticsearchSecret: verrazzano-es-internal
-      elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+      elasticsearchURL: http://verrazzano-authproxy-opensearch:8775
       enabled: true
     grafana:
       enabled: true
