@@ -111,7 +111,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			vmc.Namespace = vmcName.Namespace
 			vmc.Spec.CASecret = clusterCASecret
 			return nil
-		})
+		}).AnyTimes()
 
 	adminMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getManifestSecretName("cluster1")}, gomock.Not(gomock.Nil())).
@@ -366,7 +366,7 @@ func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts
 			vmc.Namespace = vmcName.Namespace
 			vmc.Spec.CASecret = clusterCASecret
 			return nil
-		})
+		}).AnyTimes()
 	adminClusterCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterCASecret}
 	adminMock.EXPECT().
 		Get(gomock.Any(), adminClusterCASecret, gomock.Not(gomock.Nil())).

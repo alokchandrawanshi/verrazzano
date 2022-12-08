@@ -187,6 +187,15 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
 	}
 
+	log.Debugf("Registering ArgoCD for VMC %s", vmc.Name)
+	if r.isArgoCDEnabled() {
+		err = r.registerManagedClusterWithArgoCD(ctx, vmc)
+		if err != nil {
+			r.handleError(ctx, vmc, "Failed to register managed cluster with ArgoCD", err, log)
+			return newRequeueWithDelay(), err
+		}
+	}
+
 	r.setStatusConditionReady(vmc, "Ready")
 	statusErr := r.updateStatus(ctx, vmc)
 	if statusErr != nil {

@@ -129,6 +129,8 @@ type VerrazzanoManagedClusterStatus struct {
 	PrometheusHost string `json:"prometheusHost,omitempty"`
 	// The state of Rancher registration for this managed cluster.
 	RancherRegistration RancherRegistration `json:"rancherRegistration,omitempty"`
+	// The state of ArgoCD registration for this managed cluster.
+	ArgoCDRegistration ArgoCDRegistration `json:"argocdRegistration,omitempty"`
 	// The state of this managed cluster.
 	State StateType `json:"state"`
 }

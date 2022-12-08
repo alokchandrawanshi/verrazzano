@@ -110,6 +110,25 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.SecretResourceVersion = secret.ResourceVersion
 	}
 
+	// ArgoCD managed cluster registration
+	// Create the k8s resources if (1) the rancher cluster id is populated and (2) the registration state is active
+	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
+	vmc := v1alpha1.VerrazzanoManagedCluster{}
+	err = s.AdminClient.Get(s.Context, vmcName, &vmc)
+	if err != nil {
+		return err
+	}
+	if len(vmc.Status.RancherRegistration.ClusterID) > 0 && vmc.Status.State == v1alpha1.StateActive {
+		localCASecretData, err := s.getLocalClusterCASecretData()
+		if err != nil {
+			return err
+		}
+		err = s.createArgocdResources(localCASecretData)
+		if err != nil {
+			s.Log.Errorf("Failed to create ArgoCD k8s resources: %v", err)
+		}
+	}
+
 	// Update the status of our VMC on the admin cluster to record the last time we connected
 	err = s.updateVMCStatus()
 	if err != nil {
@@ -165,6 +184,10 @@ func (s *Syncer) updateVMCStatus() error {
 	}
 
 	vmc.Status.PrometheusHost = prometheusHost
+
+	if vmc.Status.ArgoCDRegistration.Status != v1alpha1.MCRegistrationFailed {
+		vmc.Status.ArgoCDRegistration.Status = v1alpha1.MCRegistrationCompleted
+	}
 
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
