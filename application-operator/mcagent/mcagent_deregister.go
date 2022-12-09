@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	"context"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -52,5 +53,52 @@ func (s *Syncer) syncDeregistration() error {
 		s.Log.Errorf("Failed to delete the managed cluster registration secret %s/%s: %v", constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace, err)
 		return err
 	}
+
+	argoRegSec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      SecName,
+			Namespace: KubeSystemNamespace,
+		},
+	}
+	err = s.LocalClient.Delete(context.TODO(), &argoRegSec)
+	if client.IgnoreNotFound(err) != nil {
+		s.Log.Errorf("Failed to delete the registered argocd secret on managed cluster %s/%s: %v", SecName, KubeSystemNamespace, err)
+		return err
+	}
+
+	argoServiceAccount := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ServiceAccountName,
+			Namespace: KubeSystemNamespace,
+		},
+	}
+	err = s.LocalClient.Delete(context.TODO(), &argoServiceAccount)
+	if client.IgnoreNotFound(err) != nil {
+		s.Log.Errorf("Failed to delete the registered argocd service account on managed cluster %s/%s: %v", ServiceAccountName, KubeSystemNamespace, err)
+		return err
+	}
+
+	argoClusterRole := rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterRoleName,
+		},
+	}
+	err = s.LocalClient.Delete(context.TODO(), &argoClusterRole)
+	if client.IgnoreNotFound(err) != nil {
+		s.Log.Errorf("Failed to delete the registered argocd cluster roles on managed cluster %s: %v", ClusterRoleName, err)
+		return err
+	}
+
+	argoClusterRoleBinding := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterRoleBindingName,
+		},
+	}
+	err = s.LocalClient.Delete(context.TODO(), &argoClusterRoleBinding)
+	if client.IgnoreNotFound(err) != nil {
+		s.Log.Errorf("Failed to delete the registered argocd cluster role bindings on managed cluster %s: %v", ClusterRoleBindingName, err)
+		return err
+	}
+
 	return nil
 }

@@ -48,15 +48,15 @@ func TestCreateArgoCDResources(t *testing.T) {
 	}
 	// Verify the associated k8s resources got created on local cluster
 	assert.NoError(t, s.createArgocdResources([]byte("foobar")))
-	err := s.LocalClient.Get(s.Context, types.NamespacedName{Name: serviceAccountName, Namespace: kubeSystemNamespace}, &corev1.ServiceAccount{})
+	err := s.LocalClient.Get(s.Context, types.NamespacedName{Name: ServiceAccountName, Namespace: KubeSystemNamespace}, &corev1.ServiceAccount{})
 	assert.NoError(t, err)
 
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: secName, Namespace: kubeSystemNamespace}, &corev1.Secret{})
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: SecName, Namespace: KubeSystemNamespace}, &corev1.Secret{})
 	assert.NoError(t, err)
 
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRole{})
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: ClusterRoleName}, &rbacv1.ClusterRole{})
 	assert.NoError(t, err)
 
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: clusterRoleBindingName}, &rbacv1.ClusterRoleBinding{})
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: ClusterRoleBindingName}, &rbacv1.ClusterRoleBinding{})
 	assert.NoError(t, err)
 }

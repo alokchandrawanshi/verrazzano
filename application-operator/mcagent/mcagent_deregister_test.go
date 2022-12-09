@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	"context"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"testing"
 	"time"
 
@@ -55,6 +56,29 @@ func TestSyncDeregistration(t *testing.T) {
 		},
 	}
 
+	argoRegSec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      SecName,
+			Namespace: KubeSystemNamespace,
+		},
+	}
+	argoServiceAccount := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ServiceAccountName,
+			Namespace: KubeSystemNamespace,
+		},
+	}
+	argoClusterRole := rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterRoleName,
+		},
+	}
+	argoClusterRoleBinding := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterRoleBindingName,
+		},
+	}
+
 	tests := []struct {
 		name    string
 		vmc     *clustersv1alpha1.VerrazzanoManagedCluster
@@ -94,6 +118,49 @@ func TestSyncDeregistration(t *testing.T) {
 			objects: []client.Object{
 				&mcRegSec,
 				&mcAgentSec,
+			},
+		},
+		{
+			name:    "test deleted argocd secret",
+			vmc:     &vmcDeleted,
+			objects: []client.Object{&argoRegSec},
+		},
+		{
+			name: "test deleted argocd service account and secret",
+			vmc:  &vmcDeleted,
+			objects: []client.Object{
+				&argoRegSec,
+				&argoServiceAccount,
+			},
+		},
+		{
+			name: "test deleted cluster role and role bindings",
+			vmc:  &vmcDeleted,
+			objects: []client.Object{
+				&argoClusterRole,
+				&argoClusterRoleBinding,
+			},
+		},
+		{
+			name: "test deleted argocd created resources",
+			vmc:  &vmcDeleted,
+			objects: []client.Object{
+				&argoRegSec,
+				&argoServiceAccount,
+				&argoClusterRole,
+				&argoClusterRoleBinding,
+			},
+		},
+		{
+			name: "test deleted argocd created resources and mc agent secrets",
+			vmc:  &vmcDeleted,
+			objects: []client.Object{
+				&argoRegSec,
+				&argoServiceAccount,
+				&argoClusterRole,
+				&argoClusterRoleBinding,
+				&mcAgentSec,
+				&mcRegSec,
 			},
 		},
 	}

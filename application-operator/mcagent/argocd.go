@@ -11,18 +11,18 @@ import (
 )
 
 const (
-	kubeSystemNamespace    = "kube-system"
-	caCrtKey               = "ca.crt"
-	serviceAccountName     = "argocd-manager"
-	secName                = "argocd-manager-token"
-	clusterRoleName        = "argocd-manager-role"
-	clusterRoleBindingName = "argocd-manager-role-binding"
+	KubeSystemNamespace    = "kube-system"
+	CaCrtKey               = "ca.crt"
+	ServiceAccountName     = "argocd-manager"
+	SecName                = "argocd-manager-token"
+	ClusterRoleName        = "argocd-manager-role"
+	ClusterRoleBindingName = "argocd-manager-role-binding"
 )
 
 func (s *Syncer) createArgoCDServiceAccount() error {
 	var serviceAccount corev1.ServiceAccount
-	serviceAccount.Name = serviceAccountName
-	serviceAccount.Namespace = kubeSystemNamespace
+	serviceAccount.Name = ServiceAccountName
+	serviceAccount.Namespace = KubeSystemNamespace
 
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &serviceAccount, func() error {
 		mutateServiceAccount(serviceAccount)
@@ -34,8 +34,8 @@ func (s *Syncer) createArgoCDServiceAccount() error {
 
 func (s *Syncer) createArgoCDSecret(secretData []byte) error {
 	var secret corev1.Secret
-	secret.Name = secName
-	secret.Namespace = kubeSystemNamespace
+	secret.Name = SecName
+	secret.Namespace = KubeSystemNamespace
 
 	// Create or update on the local cluster
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &secret, func() error {
@@ -47,7 +47,7 @@ func (s *Syncer) createArgoCDSecret(secretData []byte) error {
 }
 
 func (s *Syncer) createArgoCDRole() error {
-	role := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: clusterRoleName}}
+	role := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: ClusterRoleName}}
 
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &role, func() error {
 		mutateClusterRole(role)
@@ -58,7 +58,7 @@ func (s *Syncer) createArgoCDRole() error {
 }
 
 func (s *Syncer) createArgoCDRoleBinding() error {
-	binding := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: clusterRoleBindingName}}
+	binding := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: ClusterRoleBindingName}}
 
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &binding, func() error {
 		mutateRoleBinding(binding)
@@ -71,7 +71,7 @@ func (s *Syncer) createArgoCDRoleBinding() error {
 func mutateServiceAccount(sa corev1.ServiceAccount) {
 	sa.Secrets = []corev1.ObjectReference{
 		{
-			Name: secName,
+			Name: SecName,
 		},
 	}
 }
@@ -81,9 +81,9 @@ func mutateArgoCDSecret(secret corev1.Secret, secretData []byte) {
 		secret.Data = make(map[string][]byte)
 	}
 	secret.Type = corev1.SecretTypeServiceAccountToken
-	secret.Data[caCrtKey] = secretData
+	secret.Data[CaCrtKey] = secretData
 	secret.Annotations = map[string]string{
-		corev1.ServiceAccountNameKey: serviceAccountName,
+		corev1.ServiceAccountNameKey: ServiceAccountName,
 	}
 }
 
@@ -101,13 +101,13 @@ func mutateRoleBinding(binding rbacv1.ClusterRoleBinding) {
 	binding.RoleRef = rbacv1.RoleRef{
 		APIGroup: rbacv1.GroupName,
 		Kind:     "ClusterRole",
-		Name:     clusterRoleName,
+		Name:     ClusterRoleName,
 	}
 	binding.Subjects = []rbacv1.Subject{
 		{
 			Kind:      "ServiceAccount",
-			Name:      serviceAccountName,
-			Namespace: kubeSystemNamespace,
+			Name:      ServiceAccountName,
+			Namespace: KubeSystemNamespace,
 		},
 	}
 }
