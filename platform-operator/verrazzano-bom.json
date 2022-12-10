@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "20221130204508-94b80390f",
-              "dashboard": "20221130204508-94b80390f",
+              "tag": "20221209192727-e1621ed95",
+              "dashboard": "v2.6.8-20221206200904-698a3266",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221123130449-77e20c949"
+              "tag": "20221209192727-e1621ed95v"
             }
           ]
         },
@@ -155,11 +155,11 @@
             },
             {
               "image": "fleet-agent",
-              "tag": "20221130153816-2fe6b0c"
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
               "image": "fleet",
-              "tag": "20221130153816-2fe6b0c"
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
               "image": "gitjob",
