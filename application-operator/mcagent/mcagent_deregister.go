@@ -78,17 +78,6 @@ func (s *Syncer) syncDeregistration() error {
 		return err
 	}
 
-	argoClusterRole := rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: ClusterRoleName,
-		},
-	}
-	err = s.LocalClient.Delete(context.TODO(), &argoClusterRole)
-	if client.IgnoreNotFound(err) != nil {
-		s.Log.Errorf("Failed to delete the registered argocd cluster roles on managed cluster %s: %v", ClusterRoleName, err)
-		return err
-	}
-
 	argoClusterRoleBinding := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ClusterRoleBindingName,
@@ -97,6 +86,17 @@ func (s *Syncer) syncDeregistration() error {
 	err = s.LocalClient.Delete(context.TODO(), &argoClusterRoleBinding)
 	if client.IgnoreNotFound(err) != nil {
 		s.Log.Errorf("Failed to delete the registered argocd cluster role bindings on managed cluster %s: %v", ClusterRoleBindingName, err)
+		return err
+	}
+
+	argoClusterRole := rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterRoleName,
+		},
+	}
+	err = s.LocalClient.Delete(context.TODO(), &argoClusterRole)
+	if client.IgnoreNotFound(err) != nil {
+		s.Log.Errorf("Failed to delete the registered argocd cluster roles on managed cluster %s: %v", ClusterRoleName, err)
 		return err
 	}
 
