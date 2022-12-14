@@ -66,13 +66,26 @@ func (m *PodSecurityWebhook) Handle(ctx context.Context, req admission.Request) 
 
 // processJob processes the job request and applies the necessary annotations based on Job ownership and labels
 func (m *PodSecurityWebhook) mutatePod(req admission.Request, pod *corev1.Pod, log *zap.SugaredLogger) admission.Response {
+	var mutated bool
 	for _, container := range pod.Spec.Containers {
-		mutateContainer(&container)
+		if mutateContainer(&container) {
+			mutated = true
+		}
 	}
 	for _, initContainer := range pod.Spec.InitContainers {
-		mutateContainer(&initContainer)
+		if mutateContainer(&initContainer) {
+			mutated = true
+		}
 	}
-	return admission.Response{}
+	if !mutated {
+		admission.Allowed("No action required, pod already had pod security configured")
+	}
+	marshaledPodData, err := yaml.Marshal(pod)
+	if err != nil {
+		log.Error("Unable to marshall data for pod %s due to ", pod.Name, zap.Error(err))
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPodData)
 }
 
 func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *corev1.Pod) (bool, error) {
@@ -132,13 +145,18 @@ func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *core
 	return false, nil
 }
 
-func mutateContainer(container *corev1.Container) {
+func mutateContainer(container *corev1.Container) bool {
 	if container.SecurityContext == nil {
 		container.SecurityContext = &corev1.SecurityContext{}
 	}
 	if container.SecurityContext.Capabilities == nil {
 		container.SecurityContext.Capabilities = &corev1.Capabilities{}
 	}
+	for _, capability := range container.SecurityContext.Capabilities.Drop {
+		if capability == "ALL" {
+			return false
+		}
+	}
 	container.SecurityContext.Capabilities.Drop = append(container.SecurityContext.Capabilities.Drop, "ALL")
-
+	return true
 }
