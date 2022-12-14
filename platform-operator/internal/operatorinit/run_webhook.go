@@ -136,6 +136,19 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 			},
 		},
 	)
+
+	// register MySQL backup job mutating webhook
+	mgr.GetWebhookServer().Register(
+		constants.PodSecurityMutatingWebhookPath,
+		&webhook.Admission{
+			Handler: &webhooks.PodSecurityWebhook{
+				Client:        mgr.GetClient(),
+				KubeClient:    kubeClient,
+				DynamicClient: dynamicClient,
+				Defaulters:    []webhooks.MySQLDefaulter{},
+			},
+		},
+	)
 	// register requirements validator webhooks
 	mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{}})
 	mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{}})
