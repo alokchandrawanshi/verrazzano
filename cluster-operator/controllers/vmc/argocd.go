@@ -7,9 +7,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"io"
 	corev1 "k8s.io/api/core/v1"
 	"net"
@@ -63,69 +65,62 @@ type PostPayload struct {
 
 func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() bool {
 	vz, _ := r.getVerrazzanoResource()
-	return vz.Status.VerrazzanoInstance.ArgoCDURL != nil
+	return vzcr.IsArgoCDEnabled(vz)
 }
 
 // registerManagedClusterWithArgoCD calls the ArgoCD api to register a managed cluster with ArgoCD
-func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster) (*clusterapi.ArgoCDRegistration, error) {
 	if vmc.Status.ArgoCDRegistration.Status == "" {
 		msg := fmt.Sprintf("Waiting for Verrazzano-created VMC named %s to have a cluster id in the status before ArgoCD cluster registration", vmc.Name)
 		r.log.Progressf(msg)
-		r.updateArgoCDStatus(ctx, vmc, clusterapi.RegistrationPendingRancher, msg)
+		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
 	} else if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationMCResourceCreationCompleted {
 		var clusterID = vmc.Status.RancherRegistration.ClusterID
 		vz, err := r.getVerrazzanoResource()
 		if err != nil {
 			msg := "Could not find Verrazzano resource"
-			r.updateArgoCDStatus(ctx, vmc, clusterapi.MCRegistrationFailed, msg)
-			return r.log.ErrorfNewErr("Unable to find Verrazzano resource on admin cluster: %v", err)
+			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find Verrazzano resource on admin cluster: %v", err)
 		}
 		if vz.Status.VerrazzanoInstance == nil {
 			msg := "No instance information found in Verrazzano resource status"
-			r.updateArgoCDStatus(ctx, vmc, clusterapi.MCRegistrationFailed, msg)
-			return r.log.ErrorfNewErr("Unable to find instance information in Verrazzano resource status")
+			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find instance information in Verrazzano resource status")
 		}
 		var rancherURL = "https://" + *(vz.Status.VerrazzanoInstance.RancherURL) + k8sClustersPath + clusterID
 
 		caCert, err := common.GetRootCA(r.Client)
 		if err != nil {
 			msg := "Failed to get ArgoCD TLS CA"
-			r.updateArgoCDStatus(ctx, vmc, clusterapi.MCRegistrationFailed, msg)
-			return r.log.ErrorfNewErr("Unable to get ArgoCD TLS CA")
+			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to get ArgoCD TLS CA")
 		}
 		secret, err := getArgoCDAdminSecret(r.Client)
 		if err != nil {
 			msg := "Failed to get ArgoCD admin secret"
-			r.updateArgoCDStatus(ctx, vmc, clusterapi.MCRegistrationFailed, msg)
-			return r.log.ErrorfNewErr("Unable to get ArgoCD admin secret")
+			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to get ArgoCD admin secret")
 		}
 
 		ac, err := newArgoCDConfig(r.Client, r.log)
 		if err != nil {
 			msg := "Failed to create ArgoCD API client"
-			r.updateArgoCDStatus(ctx, vmc, clusterapi.MCRegistrationFailed, msg)
-			return r.log.ErrorfNewErr("Unable to connect to ArgoCD API on admin cluster: %v", err)
+			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to connect to ArgoCD API on admin cluster: %v", err)
 		}
 
 		// If the managed cluster is registered, we should not attempt to do POST
 		isRegistered, err := isManagedClusterAlreadyExist(ac, vmc.Name, r.log)
 		if err != nil {
 			msg := "Failed to call ArgoCD clusters GET API"
-			r.updateArgoCDStatus(ctx, vmc, clusterapi.MCRegistrationFailed, msg)
-			return r.log.ErrorfNewErr("Unable to call ArgoCD clusters GET API on admin cluster: %v", err)
+			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call ArgoCD clusters GET API on admin cluster: %v", err)
 		}
 
 		if !isRegistered {
 			err = r.argocdClusterAdd(ac, vmc.Name, caCert, secret, rancherURL, r.log)
 			if err != nil {
 				msg := "Failed to call ArgoCD clusters POST API"
-				r.updateArgoCDStatus(ctx, vmc, clusterapi.MCRegistrationFailed, msg)
-				return r.log.ErrorfNewErr("Unable to call ArgoCD clusters POST API on admin cluster: %v", err)
+				return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call ArgoCD clusters POST API on admin cluster: %v", err)
 			}
 		}
 		// TODO: invoke PUT if cluster already exists and caData are different
 	}
-	return nil
+	return nil, errors.New("shouldn't be here")
 }
 
 // isManagedClusterAlreadyExist returns true if the managed cluster does exist
@@ -401,6 +396,14 @@ func getArgoCDIngressHostname(rdr client.Reader) (string, error) {
 	}
 
 	return "", fmt.Errorf("Failed, ArgoCD ingress %v is missing host names", nsName)
+}
+
+func newArgoCDRegistration(status clusterapi.ArgoCDRegistrationStatus, message string) *clusterapi.ArgoCDRegistration {
+	return &clusterapi.ArgoCDRegistration{
+		Status:    status,
+		Timestamp: "",
+		Message:   message,
+	}
 }
 
 // Update the ArgoCD registration status

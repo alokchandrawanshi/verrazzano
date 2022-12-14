@@ -188,16 +188,26 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 
 	log.Debugf("Registering ArgoCD for VMC %s", vmc.Name)
+	var argoCDRegistration *clustersv1alpha1.ArgoCDRegistration
 	if r.isArgoCDEnabled() {
-		err = r.registerManagedClusterWithArgoCD(ctx, vmc)
+		argoCDRegistration, err = r.registerManagedClusterWithArgoCD(ctx, vmc)
 		if err != nil {
 			r.handleError(ctx, vmc, "Failed to register managed cluster with ArgoCD", err, log)
+			_ = r.updateStatus(ctx, vmc, func(vmc *clustersv1alpha1.VerrazzanoManagedCluster) {
+				if argoCDRegistration != nil {
+					vmc.Status.ArgoCDRegistration = *argoCDRegistration
+				}
+			})
 			return newRequeueWithDelay(), err
 		}
 	}
 
 	r.setStatusConditionReady(vmc, "Ready")
-	statusErr := r.updateStatus(ctx, vmc)
+	statusErr := r.updateStatus(ctx, vmc, func(vmc *clustersv1alpha1.VerrazzanoManagedCluster) {
+		if argoCDRegistration != nil {
+			vmc.Status.ArgoCDRegistration = *argoCDRegistration
+		}
+	})
 	if statusErr != nil {
 		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
 	}
@@ -389,7 +399,7 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 	fullMsg := fmt.Sprintf("%s: %v", msg, err)
 	log.ErrorfThrottled(fullMsg)
 	r.setStatusConditionNotReady(ctx, vmc, fullMsg)
-	statusErr := r.updateStatus(ctx, vmc)
+	statusErr := r.updateStatus(ctx, vmc, func(vmc *clustersv1alpha1.VerrazzanoManagedCluster) {})
 	if statusErr != nil {
 		log.ErrorfThrottled("Failed to update status for VMC %s: %v", vmc.Name, statusErr)
 	}
@@ -430,7 +440,7 @@ func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1a
 }
 
 // updateStatus updates the status of the VMC in the cluster, with all provided conditions, after setting the vmc.Status.State field for the cluster
-func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, vmcMutateFunc func(vmc *clustersv1alpha1.VerrazzanoManagedCluster)) error {
 	if vmc.Status.LastAgentConnectTime != nil {
 		currentTime := metav1.Now()
 		// Using the current plus added time to find the difference with lastAgentConnectTime to validate
@@ -458,7 +468,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		r.setStatusCondition(existingVMC, genCondition, genCondition.Type == clustersv1alpha1.ConditionManifestPushed)
 	}
 	existingVMC.Status.State = vmc.Status.State
-
+	vmcMutateFunc(existingVMC)
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
 	return r.Status().Update(ctx, existingVMC)
 }

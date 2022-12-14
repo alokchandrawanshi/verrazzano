@@ -7,13 +7,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/Jeffail/gabs/v2"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -1486,7 +1486,7 @@ func TestUpateStatus(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	reconciler.log = vzlog.DefaultLogger()
 
-	err := reconciler.updateStatus(context.TODO(), &vmc)
+	err := reconciler.updateStatus(context.TODO(), &vmc, func(vmc *v1alpha1.VerrazzanoManagedCluster) {})
 
 	// Validate the results
 	mocker.Finish()
@@ -1503,7 +1503,7 @@ func TestUpateStatus(t *testing.T) {
 			return nil
 		})
 
-	err = reconciler.updateStatus(context.TODO(), &vmc)
+	err = reconciler.updateStatus(context.TODO(), &vmc, func(vmc *v1alpha1.VerrazzanoManagedCluster) {})
 
 	// Validate the results
 	mocker.Finish()
@@ -1524,7 +1524,7 @@ func TestUpateStatus(t *testing.T) {
 			return nil
 		})
 
-	err = reconciler.updateStatus(context.TODO(), &vmc)
+	err = reconciler.updateStatus(context.TODO(), &vmc, func(vmc *v1alpha1.VerrazzanoManagedCluster) {})
 
 	// Validate the results
 	mocker.Finish()
@@ -1786,7 +1786,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			}
 			list.Items = append(list.Items, vz)
 			return nil
-		})
+		}).Times(2)
 
 	// Expect a call to get the tls ingress and return the ingress.
 	if !externalES {
