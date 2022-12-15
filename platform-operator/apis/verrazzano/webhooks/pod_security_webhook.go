@@ -78,7 +78,7 @@ func mutatePod(req admission.Request, pod *corev1.Pod, log *zap.SugaredLogger) a
 			mutated = true
 		}
 	}
-	for i := range pod.Spec.Containers {
+	for i := range pod.Spec.InitContainers {
 		if mutateContainer(&pod.Spec.InitContainers[i]) {
 			mutated = true
 		}
