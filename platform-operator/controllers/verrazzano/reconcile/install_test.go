@@ -6,17 +6,17 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/batch/v1"
 	"net/url"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -24,8 +24,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-
-	"github.com/stretchr/testify/assert"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -125,6 +125,7 @@ func TestCompleteUpdateReadyComponent(t *testing.T) {
 	asserts.Equal(vzapi.CondInstallComplete, vz.Status.Components[fakeCompReleaseName].Conditions[1].Type)
 	asserts.False(result.Requeue)
 	assertKeycloakAuthConfig(asserts, ctx)
+	assertArgoCDConfig(asserts, ctx)
 }
 
 // TestCompleteUpdateDisabledComponent tests the reconcile func with updated generation
@@ -164,6 +165,7 @@ func TestCompleteUpdateDisabledComponent(t *testing.T) {
 	asserts.Equal(vzapi.CondInstallComplete, vz.Status.Components[fakeCompReleaseName].Conditions[1].Type)
 	asserts.False(result.Requeue)
 	assertKeycloakAuthConfig(asserts, ctx)
+	assertArgoCDConfig(asserts, ctx)
 }
 
 // TestNoUpdateSameGeneration tests the reconcile func with same generation
@@ -306,6 +308,7 @@ func TestUpdateFalseMonitorChanges(t *testing.T) {
 	asserts.Equal(lastReconciledGeneration, vz.Status.Components[fakeCompReleaseName].LastReconciledGeneration)
 	asserts.False(result.Requeue)
 	assertKeycloakAuthConfig(asserts, ctx)
+	assertArgoCDConfig(asserts, ctx)
 }
 
 func reset() {
@@ -369,17 +372,22 @@ func testUpdate(t *testing.T,
 	authConfig := createKeycloakAuthConfig()
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := createKeycloakSecret()
+	argoCASecret := createCASecret()
+	argoCDConfigMap := createArgoCDCM()
+	argoCDRbacConfigMap := createArgoCDRbacCM()
+	argoCDServerDeploy := createArgoCDServerDeploy()
 	firstLoginSetting := createFirstLoginSetting()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	argocdIngress := createIngress(constants.ArgoCDNamespace, constants.ArgoCDIngress, common.ArgoCDName)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
-	verrazzanoClusterUserRole := createClusterRoles(clusteroperator.VerrazzanoClusterUserRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	jobList := createJobsList()
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
-		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole).
+		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole).
 		WithLists(&ingressList, &jobList).Build()
 
 	ctx := spi.NewFakeContext(c, vz, nil, false)
@@ -471,6 +479,59 @@ func createKeycloakSecret() corev1.Secret {
 	}
 }
 
+func createCASecret() corev1.Secret {
+	return corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.ArgoCDNamespace,
+			Name:      common.ArgoCDIngressCAName,
+		},
+		Data: map[string][]byte{
+			"ca.crt": []byte("test-ca-argocd"),
+		},
+	}
+}
+
+func createArgoCDCM() corev1.ConfigMap {
+	return corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.ArgoCDNamespace,
+			Name:      common.ArgoCDCM,
+		},
+		Data: map[string]string{
+			"url":         "https://argocd",
+			"oidc.config": common.KeyCloakOIDCConfig,
+		},
+	}
+}
+
+func createArgoCDRbacCM() corev1.ConfigMap {
+	return corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.ArgoCDNamespace,
+			Name:      common.ArgoCDRBACCM,
+		},
+		Data: map[string]string{
+			"policy.csv": "blah, blah",
+		},
+	}
+}
+
+func createArgoCDServerDeploy() appsv1.Deployment {
+	return appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.ArgoCDNamespace,
+			Name:      common.ArgoCDServer,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{vzconst.VerrazzanoRestartAnnotation: "12-10-2023"},
+				},
+			},
+		},
+	}
+}
+
 func createFirstLoginSetting() unstructured.Unstructured {
 	firstLoginSetting := unstructured.Unstructured{
 		Object: map[string]interface{}{},
@@ -523,6 +584,10 @@ func addExec() {
 				return "[{\"id\":\"something\", \"username\":\"verrazzano\"}]", "", nil
 			}
 
+			if strings.Contains(commands[2], "get client-scopes") {
+				return "[{\"id\" : \"quick-fox\",\"name\" : \"groups\"}]", "", nil
+			}
+
 		}
 		return "", "", nil
 	}
@@ -540,6 +605,18 @@ func assertKeycloakAuthConfig(asserts *assert.Assertions, ctx spi.ComponentConte
 	asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeRancherURL], fmt.Sprintf("https://%s%s", constants.RancherIngress, rancher.AuthConfigKeycloakURLPathVerifyAuth))
 	asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeAuthEndpoint], fmt.Sprintf("https://%s%s", constants.KeycloakIngress, rancher.AuthConfigKeycloakURLPathAuthEndPoint))
 	asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeClientID], rancher.AuthConfigKeycloakClientIDRancher)
+}
+
+func assertArgoCDConfig(asserts *assert.Assertions, ctx spi.ComponentContext) {
+	configMap := &corev1.ConfigMap{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.ArgoCDNamespace, Name: common.ArgoCDCM}, configMap)
+	asserts.Nil(err)
+	asserts.Equal(configMap.Data["url"], fmt.Sprintf("https://%s", common.ArgoCDName))
+	asserts.Equal(configMap.Data["oidc.config"], common.KeyCloakOIDCConfig)
+
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.ArgoCDNamespace, Name: common.ArgoCDRBACCM}, configMap)
+	asserts.Nil(err)
+	asserts.Equal(configMap.Data["policy.csv"], common.RbacCMPolicy)
 }
 
 // TestCheckGenerationUpdated tests checkGenerationUpdated

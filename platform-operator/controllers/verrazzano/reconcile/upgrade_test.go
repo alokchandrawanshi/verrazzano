@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -551,11 +551,16 @@ func TestUpgradeCompleted(t *testing.T) {
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := createKeycloakSecret()
 	firstLoginSetting := createFirstLoginSetting()
+	argoCASecret := createCASecret()
+	argoCDConfigMap := createArgoCDCM()
+	argoCDRbacConfigMap := createArgoCDRbacCM()
+	argoCDServerDeploy := createArgoCDServerDeploy()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	argocdIngress := createIngress(constants.ArgoCDNamespace, constants.ArgoCDIngress, common.ArgoCDName)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
-	verrazzanoClusterUserRole := createClusterRoles(clusteroperator.VerrazzanoClusterUserRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -577,7 +582,8 @@ func TestUpgradeCompleted(t *testing.T) {
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
-		&rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
+		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
+		&authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
 		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole,
 	).Build()
 
@@ -649,11 +655,17 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := createKeycloakSecret()
 	firstLoginSetting := createFirstLoginSetting()
+	argoCASecret := createCASecret()
+	argoCDConfigMap := createArgoCDCM()
+	argoCDRbacConfigMap := createArgoCDRbacCM()
+	argoCDServerDeploy := createArgoCDServerDeploy()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	argocdIngress := createIngress(constants.ArgoCDNamespace, constants.ArgoCDIngress, common.ArgoCDName)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
-	verrazzanoClusterUserRole := createClusterRoles(clusteroperator.VerrazzanoClusterUserRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
+
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -675,7 +687,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
-		&rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
+		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
+		&authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
 		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole,
 	).Build()
 
@@ -913,7 +926,7 @@ func TestUpgradeComponent(t *testing.T) {
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
-	verrazzanoClusterUserRole := createClusterRoles(clusteroperator.VerrazzanoClusterUserRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	addExec()
 
 	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
@@ -1125,7 +1138,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
-	verrazzanoClusterUserRole := createClusterRoles(clusteroperator.VerrazzanoClusterUserRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	addExec()
 
 	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}

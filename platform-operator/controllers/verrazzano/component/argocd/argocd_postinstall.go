@@ -7,17 +7,15 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 	"time"
 )
@@ -32,10 +30,12 @@ type OIDCConfig struct {
 }
 
 // patchArgoCDSecret
-func (c argoCDComponent) patchArgoCDSecret(ctx spi.ComponentContext) error {
-	clientSecret, err := c.ArgoClientSecretProvider.GetClientSecret(ctx)
+func patchArgoCDSecret(component argoCDComponent, ctx spi.ComponentContext) error {
+	//component := NewComponent().(argoCDComponent)
+	clientSecret, err := component.ArgoClientSecretProvider.GetClientSecret(ctx)
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("failed configuring keycloak as OIDC provider for argocd, unable to fetch argocd client secret: %s", err)
+		ctx.Log().ErrorfNewErr("failed configuring keycloak as OIDC provider for argocd, unable to fetch argocd client secret: %s", err)
+		return err
 	}
 
 	// update the secret with the updated client secret
@@ -46,9 +46,14 @@ func (c argoCDComponent) patchArgoCDSecret(ctx spi.ComponentContext) error {
 		},
 	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
 		secret.Data["oidc.keycloak.clientSecret"] = []byte(clientSecret)
+
 		return nil
 	}); err != nil {
+		ctx.Log().ErrorfNewErr("Failed to patch the Argocd secret argocd-secret: %s", err)
 		return err
 	}
 
@@ -58,20 +63,17 @@ func (c argoCDComponent) patchArgoCDSecret(ctx spi.ComponentContext) error {
 
 // patchArgoCDConfigMap
 func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
-	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Errorf("Component ArgoCD failed retrieving DNS sub domain: %v", err)
-		return err
-	}
+	c := ctx.Client()
+	keycloakIngress, _ := k8sutil.GetURLForIngress(c, "keycloak", "keycloak", "https")
 
-	keycloakHost := "keycloak." + dnsSubDomain
-	argocdHost := "argocd." + dnsSubDomain
-	keycloakURL := fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
+	argoCDURL, _ := k8sutil.GetURLForIngress(c, "argocd-server", "argocd", "https")
+
+	keycloakURL := fmt.Sprintf("%s/%s", keycloakIngress, "auth/realms/verrazzano-system")
 
 	ctx.Log().Debugf("Getting ArgoCD TLS root CA")
 	caCert, err := GetRootCA(ctx)
 	if err != nil {
-		ctx.Log().Errorf("Failed to get ArgoCD TLS root CA: %v", err)
+		ctx.Log().ErrorfNewErr("Failed to get ArgoCD TLS root CA: %v", err)
 		return err
 	}
 
@@ -106,11 +108,12 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 		if cm.Data == nil {
 			cm.Data = make(map[string]string)
 		}
-		cm.Data["url"] = fmt.Sprintf("https://%s", argocdHost)
+		cm.Data["url"] = argoCDURL
 		cm.Data["oidc.config"] = string(data)
 
 		return nil
 	}); err != nil {
+		ctx.Log().ErrorfNewErr("Failed to patch the Argocd configmap argocd-cm: %s", err)
 		return err
 	}
 
@@ -138,6 +141,7 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 		rbaccm.Data["policy.csv"] = policyString
 		return nil
 	}); err != nil {
+		ctx.Log().ErrorfNewErr("Failed to patch the argocd configmap argocd-rbac-cm: %s", err)
 		return err
 	}
 
@@ -160,7 +164,8 @@ func restartArgoCDServerDeploy(ctx spi.ComponentContext) error {
 	// Annotate the deployment to do a restart of the pods
 	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(time)
 	if err := ctx.Client().Update(context.TODO(), deployment); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed, error updating Deployment %s annotation to force a pod restart", deployment.Name)
+		ctx.Log().ErrorfNewErr("Failed, error updating Deployment %s annotation to force a pod restart", deployment.Name)
+		return err
 	}
 
 	return nil
@@ -179,16 +184,6 @@ func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 	}
 
 	return secret.Data[common.ArgoCDCACert], nil
-}
-
-// getDNSDomain returns the DNS Domain
-func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
-	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
-	if err != nil {
-		return "", err
-	}
-	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
-	return dnsDomain, nil
 }
 
 // Use the CR generation so that we only restart the workloads once
