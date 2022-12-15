@@ -91,6 +91,12 @@ func (m *PodSecurityWebhook) mutatePod(req admission.Request, pod *corev1.Pod, l
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPodData)
 }
 
+// InjectDecoder injects the decoder.
+func (m *PodSecurityWebhook) InjectDecoder(d *admission.Decoder) error {
+	m.Decoder = d
+	return nil
+}
+
 func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *corev1.Pod) (bool, error) {
 	var cm *corev1.ConfigMap
 
