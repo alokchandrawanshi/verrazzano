@@ -167,6 +167,9 @@ const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
 // MysqlBackupMutatingWebhookPath specifies the path of mysql webhook.
 const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 
+// PodSecurityMutatingWebhookName specifies the name of mysql webhook.
+const PodSecurityMutatingWebhookName = "verrazzano-pod-security"
+
 // PodSecurityMutatingWebhookPath specifies the path of mysql webhook.
 const PodSecurityMutatingWebhookPath = "/pod-security"
 

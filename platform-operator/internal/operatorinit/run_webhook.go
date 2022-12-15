@@ -200,6 +200,11 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 	if err := updateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
 		return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
 	}
+
+	log.Debug("Updating pod security webhook configuration")
+	if err := updateMutatingWebhookConfiguration(kubeClient, constants.PodSecurityMutatingWebhookName); err != nil {
+		return fmt.Errorf("Failed to update pod mutating webhook configuration: %v", err)
+	}
 	return nil
 }
 
