@@ -73,13 +73,13 @@ func (m *PodSecurityWebhook) Handle(ctx context.Context, req admission.Request) 
 // processJob processes the job request and applies the necessary annotations based on Job ownership and labels
 func mutatePod(req admission.Request, pod *corev1.Pod, log *zap.SugaredLogger) admission.Response {
 	var mutated bool
-	for _, container := range pod.Spec.Containers {
-		if mutateContainer(&container) {
+	for i := range pod.Spec.Containers {
+		if mutateContainer(&pod.Spec.Containers[i]) {
 			mutated = true
 		}
 	}
-	for _, initContainer := range pod.Spec.InitContainers {
-		if mutateContainer(&initContainer) {
+	for i := range pod.Spec.Containers {
+		if mutateContainer(&pod.Spec.InitContainers[i]) {
 			mutated = true
 		}
 	}
