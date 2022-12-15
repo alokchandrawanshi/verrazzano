@@ -24,10 +24,10 @@ import (
 
 const (
 
-	// MySQLOperatorLabel and MySQLOperatorJobLabelValue are the label key,value pair
+	// MySQLOperatorJobLabel and MySQLOperatorJobLabelValue are the label key,value pair
 	// that are applied to the job by mysql-operator.
 
-	MySQLOperatorLabel         = "app.kubernetes.io/created-by"
+	MySQLOperatorJobLabel      = "app.kubernetes.io/created-by"
 	MySQLOperatorJobLabelValue = "mysql-operator"
 
 	// MySQLOperatorJobPodSpecAnnotationKey and MySQLOperatorJobPodSpecAnnotationValue are
@@ -101,7 +101,7 @@ func (m *MySQLBackupJobWebhook) processJob(req admission.Request, job *batchv1.J
 
 	// Job spec annotation is only done for jobs launched by mysql operator
 	for key, value := range job.Labels {
-		if key == MySQLOperatorLabel && value == MySQLOperatorJobLabelValue {
+		if key == MySQLOperatorJobLabel && value == MySQLOperatorJobLabelValue {
 			mysqlOperatorLabelPresent = true
 			break
 		}
@@ -212,7 +212,7 @@ func (m *MySQLBackupJobWebhook) isCronJobCreatedByMysqlOperator(req admission.Re
 
 	// CronJob spec annotation is only done for jobs launched by mysql operator
 	for key, value := range cjob.Labels {
-		if key == MySQLOperatorLabel && value == MySQLOperatorJobLabelValue {
+		if key == MySQLOperatorJobLabel && value == MySQLOperatorJobLabelValue {
 			mysqlOperatorLabelPresent = true
 			break
 		}
