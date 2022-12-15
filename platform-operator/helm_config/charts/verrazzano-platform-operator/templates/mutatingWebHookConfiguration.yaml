@@ -35,14 +35,6 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingWebhookConfiguration
-metadata:
-  name: verrazzano-pod-security
-  labels:
-    app: verrazzano-pod-security
-webhooks:
   - name: verrazzano-pod-security.verrazzano.io
     namespaceSelector:
       matchExpressions:
@@ -54,7 +46,7 @@ webhooks:
         path: "/pod-security"
     rules:
       - apiGroups:
-          - core
+          - ""
         apiVersions:
           - v1
         operations:
