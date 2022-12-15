@@ -5,7 +5,6 @@ package webhooks
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -111,14 +110,8 @@ func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *core
 
 	ignoredNS := cm.Data[ignoredNamespacesKey]
 	if ignoredNS != "" {
-		decoded, err := base64.StdEncoding.DecodeString(ignoredNS)
-		if err != nil {
-			log.Errorf("Failed to decode configmap %s/%s data at key %s: %v", cm.Namespace, cm.Name, ignoredNamespacesKey, err)
-			return false, err
-		}
-
 		var namespaces []string
-		if err = yaml.Unmarshal(decoded, &namespaces); err != nil {
+		if err := yaml.Unmarshal([]byte(ignoredNS), &namespaces); err != nil {
 			log.Errorf("Failed to unmarshal namespaces : %v", err)
 			return false, err
 		}
@@ -133,14 +126,8 @@ func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *core
 
 	ignoredPods := cm.Data[ignoredPodsKey]
 	if ignoredPods != "" {
-		decoded, err := base64.StdEncoding.DecodeString(ignoredPods)
-		if err != nil {
-			log.Errorf("Failed to decode configmap %s/%s data at key %s: %v", cm.Namespace, cm.Name, ignoredPodsKey, err)
-			return false, err
-		}
-
 		var pods []podData
-		if err = yaml.Unmarshal(decoded, &pods); err != nil {
+		if err := yaml.Unmarshal([]byte(ignoredPods), &pods); err != nil {
 			log.Errorf("Failed to unmarshal pods : %v", err)
 			return false, err
 		}
