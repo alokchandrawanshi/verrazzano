@@ -6,6 +6,7 @@ package webhooks
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
@@ -89,7 +90,7 @@ func mutatePod(req admission.Request, pod *corev1.Pod, log *zap.SugaredLogger) a
 	}
 	log.Info("-------- mutated ----------")
 
-	marshaledPodData, err := yaml.Marshal(pod)
+	marshaledPodData, err := json.Marshal(pod)
 	if err != nil {
 		log.Error("Unable to marshall data for pod %s due to ", pod.Name, zap.Error(err))
 		return admission.Errored(http.StatusInternalServerError, err)
