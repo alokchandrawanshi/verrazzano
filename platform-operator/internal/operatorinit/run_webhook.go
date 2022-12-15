@@ -137,6 +137,19 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 		},
 	)
 
+	// register MySQL statefulset mutating webhook
+	mgr.GetWebhookServer().Register(
+		constants.MysqlStatefulSetMutatingWebhookPath,
+		&webhook.Admission{
+			Handler: &webhooks.MySQLStatefulSetWebhook{
+				Client:        mgr.GetClient(),
+				KubeClient:    kubeClient,
+				DynamicClient: dynamicClient,
+				Defaulters:    []webhooks.MySQLDefaulter{},
+			},
+		},
+	)
+
 	// register MySQL backup job mutating webhook
 	mgr.GetWebhookServer().Register(
 		constants.PodSecurityMutatingWebhookPath,
