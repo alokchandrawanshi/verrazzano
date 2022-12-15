@@ -14,9 +14,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"io"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -32,20 +34,21 @@ import (
 )
 
 const (
-	argocdAdminSecret = "argocd-initial-admin-secret"
-	argocdTLSSecret   = "tls-argo-ingress"
+	argocdAdminSecret = "argocd-initial-admin-secret" //nolint:gosec //#gosec G101
+	argocdTLSSecret   = "tls-argo-ingress"            //nolint:gosec //#gosec G101
 
 	clustersAPIPath = "/api/v1/clusters"
 	sessionPath     = "/api/v1/session"
+	serviceURL      = "argocd-server.argocd-ns.svc"
 )
 
 type ArgoCDConfig struct {
 	Host           string
 	BaseURL        string
-	ApiAccessToken string
+	APIAccessToken string
 }
 
-type TlsClientConfig struct {
+type TLSClientCOnfig struct {
 	CaData   string `json:"caData"`
 	Insecure bool   `json:"insecure"`
 }
@@ -53,7 +56,7 @@ type TlsClientConfig struct {
 type Config struct {
 	Username        string `json:"username"`
 	Password        string `json:"password"`
-	TlsClientConfig TlsClientConfig
+	tlsClientConfig TLSClientCOnfig
 }
 
 type PostPayload struct {
@@ -61,6 +64,29 @@ type PostPayload struct {
 	Config           Config
 	Name             string `json:"name"`
 	Server           string `json:"server"`
+}
+
+var DefaultRetry = wait.Backoff{
+	Steps:    10,
+	Duration: 1 * time.Second,
+	Factor:   2.0,
+	Jitter:   0.1,
+}
+
+// requestSender is an interface for sending requests to Rancher that allows us to mock during unit testing
+type requestSender interface {
+	Do(httpClient *http.Client, req *http.Request) (*http.Response, error)
+}
+
+// HTTPRequestSender is an implementation of requestSender that uses http.Client to send requests
+type HTTPRequestSender struct{}
+
+// RancherHTTPClient will be replaced with a mock in unit tests
+var ArgoCDHTTPClient requestSender = &HTTPRequestSender{}
+
+// Do is a function that simply delegates sending the request to the http.Client
+func (*HTTPRequestSender) Do(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+	return httpClient.Do(req)
 }
 
 func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() bool {
@@ -126,7 +152,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(ct
 // isManagedClusterAlreadyExist returns true if the managed cluster does exist
 func isManagedClusterAlreadyExist(ac *ArgoCDConfig, clusterName string, log vzlog.VerrazzanoLogger) (bool, error) {
 	reqURL := "https://" + ac.Host + clustersAPIPath
-	headers := map[string]string{"Authorization": "Bearer " + ac.ApiAccessToken}
+	headers := map[string]string{"Authorization": "Bearer " + ac.APIAccessToken}
 
 	response, responseBody, err := sendHTTPRequest(http.MethodGet, reqURL, headers, "", ac, log)
 
@@ -155,7 +181,7 @@ func newClusterPayload(clusterName string, caCert []byte, secret string, rancher
 		Config: Config{
 			Username:        "admin",
 			Password:        secret,
-			TlsClientConfig: TlsClientConfig{CaData: string(caCert), Insecure: false},
+			tlsClientConfig: TLSClientCOnfig{CaData: string(caCert), Insecure: false},
 		},
 		Name:   clusterName,
 		Server: rancherURL,
@@ -179,7 +205,7 @@ func (r *VerrazzanoManagedClusterReconciler) argocdClusterAdd(ac *ArgoCDConfig, 
 	}
 
 	reqURL := "https://" + ac.Host + clustersAPIPath
-	headers := map[string]string{"Authorization": "Bearer " + ac.ApiAccessToken}
+	headers := map[string]string{"Authorization": "Bearer " + ac.APIAccessToken}
 
 	response, responseBody, err := sendHTTPRequest(action, reqURL, headers, payload, ac, log)
 
@@ -202,21 +228,7 @@ func (r *VerrazzanoManagedClusterReconciler) argocdClusterAdd(ac *ArgoCDConfig, 
 	return nil
 }
 
-// getArgoCACert the root CA certificate from the argocd TLS secret. If the secret does not exist, we
-// return a nil slice.
-func getArgoCACert(rdr client.Reader) ([]byte, error) {
-	secret := &corev1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: constants.ArgoCDNamespace,
-		Name:      argocdTLSSecret}
-
-	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
-		return nil, err
-	}
-	return secret.Data[common.ArgoCDCACert], nil
-}
-
-// getArgoCACert the root CA certificate from the argocd TLS secret. If the secret does not exist, we
+// getArgoCACert the initial build-in admin user admi password. If the secret does not exist, we
 // return a nil slice.
 func getArgoCDAdminSecret(rdr client.Reader) (string, error) {
 	secret := &corev1.Secret{}
@@ -232,8 +244,7 @@ func getArgoCDAdminSecret(rdr client.Reader) (string, error) {
 
 // newArgoCDConfig returns a populated ArgoCDConfig struct that can be used to make calls to the clusters API
 func newArgoCDConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*ArgoCDConfig, error) {
-	ac := &ArgoCDConfig{BaseURL: "https://" + nginxIngressHostName}
-
+	ac := &ArgoCDConfig{BaseURL: "https://" + serviceURL}
 	log.Debug("Getting ArgoCD ingress host name")
 	hostname, err := getArgoCDIngressHostname(rdr)
 	if err != nil {
@@ -248,7 +259,7 @@ func newArgoCDConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*ArgoCDConf
 		log.ErrorfThrottled("Failed to get admin token from Rancher: %v", err)
 		return nil, err
 	}
-	ac.ApiAccessToken = adminToken
+	ac.APIAccessToken = adminToken
 
 	return ac, nil
 }
@@ -303,8 +314,8 @@ func doHTTPRequest(req *http.Request, ac *ArgoCDConfig, log vzlog.VerrazzanoLogg
 	log.Debugf("Attempting HTTP request: %v", req)
 
 	proxyURL := getProxyURL()
-	var tlsConfig *tls.Config
-	tlsConfig = &tls.Config{
+	//var tlsConfig *tls.Config
+	var tlsConfig = &tls.Config{
 		ServerName: ac.Host,
 		MinVersion: tls.VersionTLS12,
 	}
@@ -332,10 +343,10 @@ func doHTTPRequest(req *http.Request, ac *ArgoCDConfig, log vzlog.VerrazzanoLogg
 	// so we need to read the body and save it so we can use it in each retry
 	buffer, _ := io.ReadAll(req.Body)
 
-	common.Retry(defaultRetry, log, true, func() (bool, error) {
+	common.Retry(DefaultRetry, log, true, func() (bool, error) {
 		// update the body with the saved data to prevent the "zero length body" error
 		req.Body = io.NopCloser(bytes.NewBuffer(buffer))
-		resp, err = rancherHTTPClient.Do(client, req)
+		resp, err = ArgoCDHTTPClient.Do(client, req)
 
 		// check for a network error and retry
 		if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
@@ -380,6 +391,23 @@ func doHTTPRequest(req *http.Request, ac *ArgoCDConfig, log vzlog.VerrazzanoLogg
 	return resp, string(body), err
 }
 
+// getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string
+func getProxyURL() string {
+	if proxyURL := os.Getenv("https_proxy"); proxyURL != "" {
+		return proxyURL
+	}
+	if proxyURL := os.Getenv("HTTPS_PROXY"); proxyURL != "" {
+		return proxyURL
+	}
+	if proxyURL := os.Getenv("http_proxy"); proxyURL != "" {
+		return proxyURL
+	}
+	if proxyURL := os.Getenv("HTTP_PROXY"); proxyURL != "" {
+		return proxyURL
+	}
+	return ""
+}
+
 // getArgoCDIngressHostname gets the ArgoCD ingress host name. This is used to set the host for TLS.
 func getArgoCDIngressHostname(rdr client.Reader) (string, error) {
 	ingress := &k8net.Ingress{}
@@ -403,29 +431,5 @@ func newArgoCDRegistration(status clusterapi.ArgoCDRegistrationStatus, message s
 		Status:    status,
 		Timestamp: "",
 		Message:   message,
-	}
-}
-
-// Update the ArgoCD registration status
-func (r *VerrazzanoManagedClusterReconciler) updateArgoCDStatus(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, status clusterapi.ArgoCDRegistrationStatus, message string) {
-	// Skip the update if the status has not changed
-	if vmc.Status.ArgoCDRegistration.Status == status &&
-		vmc.Status.ArgoCDRegistration.Message == message {
-		return
-	}
-	vmc.Status.ArgoCDRegistration.Status = status
-	vmc.Status.ArgoCDRegistration.Message = message
-
-	// Fetch the existing VMC to avoid conflicts in the status update
-	existingVMC := &clusterapi.VerrazzanoManagedCluster{}
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
-	if err != nil {
-		r.log.Errorf("Failed to get the existing VMC %s from the cluster: %v", vmc.Name, err)
-	}
-	existingVMC.Status.ArgoCDRegistration = vmc.Status.ArgoCDRegistration
-
-	err = r.Status().Update(ctx, existingVMC)
-	if err != nil {
-		r.log.Errorf("Failed to update ArgoCD registration status for VMC %s: %v", vmc.Name, err)
 	}
 }
