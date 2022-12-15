@@ -64,6 +64,8 @@ func (m *PodSecurityWebhook) Handle(ctx context.Context, req admission.Request) 
 
 		return admission.Allowed("No action required, pod was designated to be ignored")
 	}
+	log.Info("-------- reached mutate pod ----------")
+
 	return mutatePod(req, pod, log)
 }
 
@@ -85,6 +87,8 @@ func mutatePod(req admission.Request, pod *corev1.Pod, log *zap.SugaredLogger) a
 
 		admission.Allowed("No action required, pod already had pod security configured")
 	}
+	log.Info("-------- mutated ----------")
+
 	marshaledPodData, err := yaml.Marshal(pod)
 	if err != nil {
 		log.Error("Unable to marshall data for pod %s due to ", pod.Name, zap.Error(err))
