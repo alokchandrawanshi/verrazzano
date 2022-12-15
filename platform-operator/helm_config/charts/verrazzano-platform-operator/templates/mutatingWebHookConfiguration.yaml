@@ -38,7 +38,7 @@ webhooks:
   - name: verrazzano-pod-security.verrazzano.io
     namespaceSelector:
       matchExpressions:
-        - {key: verrazzano.io/namespace, operator: NotIn, values: [kube-system]}
+        - {key: verrazzano.io/namespace, operator: NotIn, values: [kube-system, verrazzano-install]}
     clientConfig:
       service:
         name: {{ .Values.name }}-webhook
