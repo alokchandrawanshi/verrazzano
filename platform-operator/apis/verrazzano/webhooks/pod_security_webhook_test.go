@@ -66,4 +66,6 @@ func TestPodSecurityHandle(t *testing.T) {
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.NoError(t, err, "Unexpected error marshaling pod")
+	assert.Equal(t, "/spec/initContainers/0/securityContext", res.Patches[0].Path)
+	assert.Equal(t, "/spec/c4ontainers/0/securityContext", res.Patches[1].Path)
 }

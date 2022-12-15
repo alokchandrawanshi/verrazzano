@@ -61,11 +61,8 @@ func (m *PodSecurityWebhook) Handle(ctx context.Context, req admission.Request) 
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 	if skip {
-		log.Info("-------- skipped ----------")
-
 		return admission.Allowed("No action required, pod was designated to be ignored")
 	}
-	log.Info("-------- reached mutate pod ----------")
 
 	return mutatePod(req, pod, log)
 }
@@ -84,18 +81,14 @@ func mutatePod(req admission.Request, pod *corev1.Pod, log *zap.SugaredLogger) a
 		}
 	}
 	if !mutated {
-		log.Info("-------- not mutated ----------")
-
 		admission.Allowed("No action required, pod already had pod security configured")
 	}
-	log.Info("-------- mutated ----------")
 
 	marshaledPodData, err := json.Marshal(pod)
 	if err != nil {
 		log.Error("Unable to marshall data for pod %s due to ", pod.Name, zap.Error(err))
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
-	log.Info("-------- marshalled ----------")
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPodData)
 }
 
@@ -115,7 +108,6 @@ func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *core
 		log.Errorf("Error getting configmap %s: %v", podSecurityConfigMapName, err)
 		return false, err
 	}
-	log.Info("-------- get ----------")
 
 	ignoredNS := cm.Data[ignoredNamespacesKey]
 	if ignoredNS != "" {
@@ -138,7 +130,6 @@ func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *core
 			}
 		}
 	}
-	log.Info("-------- namespace ----------")
 
 	ignoredPods := cm.Data[ignoredPodsKey]
 	if ignoredPods != "" {
@@ -161,7 +152,6 @@ func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *core
 			}
 		}
 	}
-	log.Info("-------- pods ----------")
 
 	return false, nil
 }
