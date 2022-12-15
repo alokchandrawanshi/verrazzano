@@ -98,12 +98,12 @@ func (m *PodSecurityWebhook) InjectDecoder(d *admission.Decoder) error {
 }
 
 func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *corev1.Pod) (bool, error) {
-	var cm *corev1.ConfigMap
+	var cm corev1.ConfigMap
 
 	if err := c.Get(context.TODO(), types.NamespacedName{
 		Name:      podSecurityConfigMapName,
 		Namespace: constants.VerrazzanoInstall,
-	}, cm); err != nil {
+	}, &cm); err != nil {
 		log.Errorf("Error getting configmap %s: %v", podSecurityConfigMapName, err)
 		return false, err
 	}
