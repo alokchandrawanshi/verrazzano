@@ -48,9 +48,6 @@ type PodSecurityDefaulter interface {
 // This function is called for any jobs that are created in a namespace with the label istio-injection=enabled.
 func (m *PodSecurityWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "pod-security")
-	log.Info("ENTERED WEBHOOK--------------")
-	log.Infof("req: %s", req.String())
-	log.Infof("req object: %s", req.Object.String())
 	pod := &corev1.Pod{}
 	err := m.Decoder.Decode(req, pod)
 	if err != nil {
@@ -64,11 +61,11 @@ func (m *PodSecurityWebhook) Handle(ctx context.Context, req admission.Request) 
 	if skip {
 		return admission.Allowed("No action required, pod was designated to be ignored")
 	}
-	return admission.Response{}
+	return mutatePod(req, pod, log)
 }
 
 // processJob processes the job request and applies the necessary annotations based on Job ownership and labels
-func (m *PodSecurityWebhook) mutatePod(req admission.Request, pod *corev1.Pod, log *zap.SugaredLogger) admission.Response {
+func mutatePod(req admission.Request, pod *corev1.Pod, log *zap.SugaredLogger) admission.Response {
 	var mutated bool
 	for _, container := range pod.Spec.Containers {
 		if mutateContainer(&container) {
