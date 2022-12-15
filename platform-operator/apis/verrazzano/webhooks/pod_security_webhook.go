@@ -49,6 +49,8 @@ type PodSecurityDefaulter interface {
 func (m *PodSecurityWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "pod-security")
 	log.Info("ENTERED WEBHOOK--------------")
+	log.Infof("req: %s", req.String())
+	log.Infof("req object: %s", req.Object.String())
 	pod := &corev1.Pod{}
 	err := m.Decoder.Decode(req, pod)
 	if err != nil {
