@@ -28,8 +28,8 @@ var (
 )
 
 type podData struct {
-	namespace string
-	name      string
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
 }
 
 // PodSecurityWebhook type for mutating pods to add security settings
@@ -133,7 +133,7 @@ func dontMutateSecurityForPod(c client.Client, log *zap.SugaredLogger, pod *core
 		}
 
 		for _, ignoredPod := range pods {
-			if pod.Namespace == ignoredPod.namespace && strings.Contains(pod.Name, ignoredPod.name) {
+			if pod.Namespace == ignoredPod.Namespace && strings.Contains(pod.Name, ignoredPod.Name) {
 				log.Debugf("Skipping update of security configuration for pod %s, pod specified to be ignored %s", pod.Name)
 				return true, nil
 			}

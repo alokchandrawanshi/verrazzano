@@ -72,3 +72,54 @@ func TestPodSecurityHandle(t *testing.T) {
 	assert.Equal(t, "/spec/initContainers/0/securityContext", res.Patches[0].Path)
 	assert.Equal(t, "/spec/containers/0/securityContext", res.Patches[1].Path)
 }
+
+func TestPodSecurityHandleIgnorePod(t *testing.T) {
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      podSecurityConfigMapName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string]string{
+			ignoredNamespacesKey: "",
+			ignoredPodsKey: `
+- namespace: test-ns
+  name: test-pod`,
+		},
+	}
+
+	client := ctrlfakes.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(cm).Build()
+
+	defaulter := &PodSecurityWebhook{
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
+		Client:        client,
+	}
+
+	// Create a pod with Istio injection disabled
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "test-ns",
+		},
+		Spec: corev1.PodSpec{
+			Containers:     []corev1.Container{{}},
+			InitContainers: []corev1.Container{{}},
+		},
+	}
+
+	pod, err := defaulter.KubeClient.CoreV1().Pods("test-ns").Create(context.TODO(), pod, metav1.CreateOptions{})
+	assert.NoError(t, err, "Unexpected error creating pod")
+	decoder := decoder()
+	err = defaulter.InjectDecoder(decoder)
+	assert.NoError(t, err, "Unexpected error injecting decoder")
+	req := admission.Request{}
+	req.Namespace = "test-ns"
+	marshaledPod, err := json.Marshal(pod)
+	assert.NoError(t, err, "Unexpected error marshaling pod")
+	req.Object = runtime.RawExtension{Raw: marshaledPod}
+	res := defaulter.Handle(context.TODO(), req)
+	assert.True(t, res.Allowed)
+	assert.NoError(t, err, "Unexpected error marshaling pod")
+	assert.Equal(t, 0, len(res.Patches))
+}
