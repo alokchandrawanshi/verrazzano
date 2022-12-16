@@ -1,3 +1,6 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package webhooks
 
 import (
@@ -67,5 +70,5 @@ func TestPodSecurityHandle(t *testing.T) {
 	assert.True(t, res.Allowed)
 	assert.NoError(t, err, "Unexpected error marshaling pod")
 	assert.Equal(t, "/spec/initContainers/0/securityContext", res.Patches[0].Path)
-	assert.Equal(t, "/spec/c4ontainers/0/securityContext", res.Patches[1].Path)
+	assert.Equal(t, "/spec/containers/0/securityContext", res.Patches[1].Path)
 }
