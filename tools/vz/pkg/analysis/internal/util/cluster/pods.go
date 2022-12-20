@@ -160,6 +160,31 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 			}
 		}
 	}
+
+	if len(pod.Status.InitContainerStatuses) > 0 {
+		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+			if initContainerStatus.State.Waiting != nil {
+				if initContainerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
+					handleImagePullBackOff(log, clusterRoot, podFile, pod, podEvents, initContainerStatus.Image,
+						fmt.Sprintf("Namespace %s, Pod %s, InitContainer %s, Message %s",
+							pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, initContainerStatus.Name, initContainerStatus.State.Waiting.Message),
+						issueReporter)
+				}
+			}
+		}
+	}
+	if len(pod.Status.ContainerStatuses) > 0 {
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if containerStatus.State.Waiting != nil {
+				if containerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
+					handleImagePullBackOff(log, clusterRoot, podFile, pod, podEvents, containerStatus.Image,
+						fmt.Sprintf("Namespace %s, Pod %s, Container %s, Message %s",
+							pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, containerStatus.Name, containerStatus.State.Waiting.Message),
+						issueReporter)
+				}
+			}
+		}
+	}
 	return nil
 }
 
