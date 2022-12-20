@@ -68,6 +68,23 @@ spec:
               apiUrl:
                 description: The Verrazzano API server URL for this managed cluster.
                 type: string
+              argocdRegistration:
+                description: The state of ArgoCD registration for this managed cluster.
+                properties:
+                  lastSetTimestamp:
+                    description: The timestamp of last status set
+                    type: string
+                  message:
+                    description: Supporting message related to the Rancher registration
+                      status
+                    type: string
+                  status:
+                    description: The status of the ArgoCD registration
+                    type: string
+                required:
+                - lastSetTimestamp
+                - status
+                type: object
               conditions:
                 description: The current state of this managed cluster.
                 items:
