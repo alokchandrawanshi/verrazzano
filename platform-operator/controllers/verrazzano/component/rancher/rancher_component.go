@@ -27,6 +27,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,6 +74,9 @@ type envVar struct {
 
 type rancherComponent struct {
 	helm.HelmComponent
+
+	// internal monitor object for running the Rancher uninstall tool in the background
+	monitor monitor.BackgroundProcessMonitor
 }
 
 var certificates = []types.NamespacedName{
@@ -126,6 +130,7 @@ func NewComponent() spi.Component {
 			},
 			GetInstallOverridesFunc: GetOverrides,
 		},
+		monitor: &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName},
 	}
 }
 
@@ -442,7 +447,7 @@ func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("Rancher postUninstall dry run")
 		return nil
 	}
-	return postUninstall(ctx)
+	return postUninstall(ctx, r.monitor)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

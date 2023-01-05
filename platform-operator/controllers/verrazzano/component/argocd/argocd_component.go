@@ -1,10 +1,12 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package argocd
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -23,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -99,7 +100,7 @@ func NewComponent() spi.Component {
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctx.Log().ErrorNewErr("Failed to get the BOM file for the cert-manager image overrides: ", err)
+		return nil, err
 	}
 	images, err := bomFile.BuildImageOverrides("argocd")
 	if err != nil {
@@ -120,7 +121,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-// IsEnabled ArgoCD is always enabled on admin clusters,
+// IsEnabled ArgoCD is disabled by default on admin clusters,
 // and is not enabled by default on managed clusters
 func (c argoCDComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsArgoCDEnabled(effectiveCR)
@@ -132,6 +133,14 @@ func (c argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isArgoCDReady(ctx)
 	}
 	return false
+}
+
+// PreInstall applies the Application Operator CRDs
+func (c argoCDComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 //Install

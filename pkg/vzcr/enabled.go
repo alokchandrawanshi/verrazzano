@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vzcr
@@ -433,7 +433,7 @@ func IsRancherBackupEnabled(cr runtime.Object) bool {
 	return false
 }
 
-// IsArgoCDEnabled returns false if ArgoCD is explicitly disabled in the CR
+// IsArgoCDEnabled returns false unless ArgoCD is explicitly enabled in the CR
 func IsArgoCDEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ArgoCD != nil && vzv1alpha1.Spec.Components.ArgoCD.Enabled != nil {
@@ -444,5 +444,5 @@ func IsArgoCDEnabled(cr runtime.Object) bool {
 			return *vzv1beta1.Spec.Components.ArgoCD.Enabled
 		}
 	}
-	return true
+	return false
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -616,7 +616,7 @@ func assertArgoCDConfig(asserts *assert.Assertions, ctx spi.ComponentContext) {
 
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.ArgoCDNamespace, Name: common.ArgoCDRBACCM}, configMap)
 	asserts.Nil(err)
-	asserts.Equal(configMap.Data["policy.csv"], common.RbacCMPolicy)
+	asserts.Equal(configMap.Data["policy.csv"], "blah, blah")
 }
 
 // TestCheckGenerationUpdated tests checkGenerationUpdated
