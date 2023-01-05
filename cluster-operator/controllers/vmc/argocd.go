@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -10,17 +10,23 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/Jeffail/gabs/v2"
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"io"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 	"time"
 
@@ -36,11 +42,25 @@ import (
 
 const (
 	argocdAdminSecret = "argocd-initial-admin-secret" //nolint:gosec //#gosec G101
-	argocdTLSSecret   = "tls-argo-ingress"            //nolint:gosec //#gosec G101
 
-	clustersAPIPath = "/api/v1/clusters"
-	sessionPath     = "/api/v1/session"
-	serviceURL      = "argocd-server.argocd.svc"
+	clustersAPIPath        = "/api/v1/clusters"
+	sessionPath            = "/api/v1/session"
+	serviceURL             = "argocd-server.argocd.svc"
+	argoUserName           = "service-argo"
+	clusterRoleName        = "service-argo-role"
+	clusterRoleBindingName = "service-argo-role-binding"
+	clusterSecretName      = "cluster-secret"
+
+	UserAttributeDisplayName         = "displayName"
+	UserAttributeUserName            = "username"
+	UserAttributePasswordName        = "password"
+	UserAttributePrincipalIDs        = "principalIds"
+	UserPrincipalLocalPrefix         = "local://"
+	RoleTemplateAttributeBuiltin     = "builtin"
+	RoleTemplateAttributeContext     = "context"
+	RoleTemplateAttributeDisplayName = "displayName"
+	RoleTemplateAttributeExternal    = "external"
+	RoleTemplateAttributeHidden      = "hidden"
 )
 
 type ArgoCDConfig struct {
@@ -49,26 +69,6 @@ type ArgoCDConfig struct {
 	APIAccessToken           string
 	CertificateAuthorityData []byte
 	AdditionalCA             []byte
-}
-
-type TLSClientConfig struct {
-	CaData   string `json:"caData"`
-	CertData string `json:"certData"`
-	KeyData  string `json:"keyData"`
-	Insecure bool   `json:"insecure"`
-}
-
-type Config struct {
-	Username        string          `json:"username"`
-	Password        string          `json:"password"`
-	TlsClientConfig TLSClientConfig `json:"tlsClientConfig"`
-}
-
-type PostPayload struct {
-	ClusterResources bool   `json:"clusterResources"`
-	Config           Config `json:"config"`
-	Name             string `json:"name"`
-	Server           string `json:"server"`
 }
 
 var DefaultRetry = wait.Backoff{
@@ -151,7 +151,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(ct
 		}
 
 		if !isRegistered {
-			err = r.argocdClusterAdd(ac, vmc.Name, caCert, secret, rancherURL, r.log)
+			err = r.argocdClusterAdd(ac, vmc.Name, caCert, secret, rancherURL)
 			if err != nil {
 				msg := "Failed to call ArgoCD clusters POST API"
 				return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call ArgoCD clusters POST API on admin cluster: %v", err)
@@ -191,71 +191,150 @@ func isManagedClusterAlreadyExist(ac *ArgoCDConfig, clusterName string, log vzlo
 			return true, nil
 		}
 	}
-	//jsonString, err := gabs.ParseJSON([]byte(responseBody))
 
-	//name, err := httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "name", "unable to find cluster state in Rancher response")
-	//if err != nil {
-	//	return false, err
-	//}
-	//if name == clusterName {
-	//	return true, nil
-	//}
 	return false, nil
 }
 
-// makeClusterPayload returns the payload for Rancher cluster creation, given a cluster name
-func newClusterPayload(clusterName string, caCert []byte, secret string, rancherURL string) (string, error) {
-	payload := &PostPayload{
-		ClusterResources: true,
-		Config: Config{
-			Username: "admin",
-			Password: secret,
-			TlsClientConfig: TLSClientConfig{
-				CaData:   base64.StdEncoding.EncodeToString(caCert),
-				Insecure: false},
-		},
-		Name:   clusterName,
-		Server: rancherURL,
-	}
-	data, err := json.Marshal(payload)
+// argocdClusterAdd registers cluster using the Rancher Proxy by creating a user in rancher, with api token and cluster roles set, and a secret containing Rancher proxy for the cluster
+func (r *VerrazzanoManagedClusterReconciler) argocdClusterAdd(ac *ArgoCDConfig, clusterName string, caCert []byte, secret string, rancherURL string) error {
+	r.log.Debugf("Configuring Rancher user for cluster registration in ArgoCD")
+	pass, err := vzpassword.GeneratePassword(15)
 	if err != nil {
-		fmt.Println(err)
-		return "", err
+		return err
 	}
-	return string(data), nil
+
+	if err := r.createOrUpdateRancherUser(pass, r.log); err != nil {
+		return err
+	}
+
+	if err := r.CreateOrUpdateRoleTemplate(r.log); err != nil {
+		return err
+	}
+
+	if err := r.createOrUpdateClusterRoleTemplateBinding(clusterName, r.log); err != nil {
+		return err
+	}
+
+	rc, err := rancherutil.NewRancherConfigForUser(r.Client, UserAttributeUserName, pass, r.log)
+	if err != nil {
+		return err
+	}
+
+	if err := r.createClusterSecret(rc.APIAccessToken, clusterName, rancherURL, caCert); err != nil {
+		return err
+	}
+
+	r.log.Oncef("Successfully registered managed cluster in ArgoCD with name: %s", clusterName)
+	return nil
 }
 
-// argocdClusterAdd simulates a client get request through the Rancher proxy for secrets
-func (r *VerrazzanoManagedClusterReconciler) argocdClusterAdd(ac *ArgoCDConfig, clusterName string, caCert []byte, secret string, rancherURL string, log vzlog.VerrazzanoLogger) error {
-	log.Debugf("Call the ArgoCD clusters api to register the cluster")
-	action := http.MethodPost
+func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(token string, clusterName string, rancherURL string, caData []byte) error {
+	var secret corev1.Secret
+	secret.Name = clusterSecretName
+	secret.Namespace = constants.ArgoCDNamespace
 
-	payload, err := newClusterPayload(clusterName, caCert, secret, rancherURL)
+	// Create or update on the local cluster
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
+		mutateClusterSecret(secret, token, clusterName, rancherURL, caData)
+		return nil
+	})
+	return err
+}
+
+type TLSClientConfig struct {
+	CaData   string `json:"caData"`
+	Insecure bool   `json:"insecure"`
+}
+
+type RancherConfig struct {
+	BearerToken     string          `json:"bearerToken"`
+	TLSClientConfig TLSClientConfig `json:"tlsClientConfig"`
+}
+
+func mutateClusterSecret(secret corev1.Secret, token string, cluserName string, rancherURL string, caData []byte) error {
+	if secret.StringData == nil {
+		secret.StringData = make(map[string]string)
+	}
+	secret.StringData["name"] = cluserName
+	secret.StringData["server"] = rancherURL
+
+	rancherConfig := &RancherConfig{
+		BearerToken: token,
+		TLSClientConfig: TLSClientConfig{
+			CaData:   base64.StdEncoding.EncodeToString(caData),
+			Insecure: false},
+	}
+	data, err := json.Marshal(rancherConfig)
 	if err != nil {
 		return err
 	}
+	secret.StringData["config"] = string(data)
 
-	reqURL := "https://" + ac.Host + clustersAPIPath
-	headers := map[string]string{"Authorization": "Bearer " + ac.APIAccessToken, "Content-Type": "application/json"}
+	return nil
+}
 
-	response, responseBody, err := sendHTTPRequest(action, reqURL, headers, payload, ac, log)
+var GVKUser = common.GetRancherMgmtAPIGVKForKind("User")
+var GVKRoleTemplate = common.GetRancherMgmtAPIGVKForKind("RoleTemplate")
+var GVKClusterRoleTemplateBinding = common.GetRancherMgmtAPIGVKForKind("ClusterRoleTemplateBinding")
+
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateRancherUser(password string, log vzlog.VerrazzanoLogger) error {
+	nsn := types.NamespacedName{Name: argoUserName}
+	data := map[string]interface{}{}
+	data[UserAttributeUserName] = argoUserName
+	caser := cases.Title(language.English)
+	data[UserAttributeDisplayName] = caser.String(argoUserName)
+	data[UserAttributePasswordName] = base64.StdEncoding.EncodeToString([]byte(password))
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + argoUserName}
+
+	return createOrUpdateResource(r.Client, nsn, GVKUser, data, log)
+}
+
+// CreateOrUpdateRoleTemplate creates or updates RoleTemplate for the Rancher cluster
+func (r *VerrazzanoManagedClusterReconciler) CreateOrUpdateRoleTemplate(log vzlog.VerrazzanoLogger) error {
+	nsn := types.NamespacedName{Name: clusterRoleName}
+
+	data := map[string]interface{}{}
+	data[RoleTemplateAttributeBuiltin] = false
+	data[RoleTemplateAttributeContext] = "cluster"
+	caser := cases.Title(language.English)
+	data[RoleTemplateAttributeDisplayName] = caser.String(clusterRoleName)
+	data[RoleTemplateAttributeExternal] = true
+	data[RoleTemplateAttributeHidden] = true
+
+	return createOrUpdateResource(r.Client, nsn, GVKRoleTemplate, data, log)
+}
+
+// createOrUpdateClusterRoleTemplateBinding creates or updates ClusterRoleTemplateBinding for the Rancher cluster
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateClusterRoleTemplateBinding(clusterName string, log vzlog.VerrazzanoLogger) error {
+	nsn := types.NamespacedName{Name: clusterRoleBindingName, Namespace: clusterName}
+
+	data := map[string]interface{}{}
+	data[ClusterRoleTemplateBindingAttributeClusterName] = clusterName
+	data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = clusterRoleName
+
+	return createOrUpdateResource(r.Client, nsn, GVKClusterRoleTemplateBinding, data, log)
+}
+
+// createOrUpdateResource creates or updates a Rancher resource
+func createOrUpdateResource(c client.Client, nsn types.NamespacedName, gvk schema.GroupVersionKind, attributes map[string]interface{}, log vzlog.VerrazzanoLogger) error {
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(gvk)
+	resource.SetName(nsn.Name)
+	resource.SetNamespace(nsn.Namespace)
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), c, &resource, func() error {
+		if len(attributes) > 0 {
+			data := resource.UnstructuredContent()
+			for k, v := range attributes {
+				data[k] = v
+			}
+		}
+		return nil
+	})
 
 	if err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gvk.Kind, nsn.Name, err.Error())
 	}
 
-	err = httputil.ValidateResponseCode(response, http.StatusCreated)
-	if err != nil {
-		return err
-	}
-
-	// TODO: parse the response and validate
-	_, err = gabs.ParseJSON([]byte(responseBody))
-	if err != nil {
-		return err
-	}
-
-	log.Oncef("Successfully registered managed cluster in ArgoCD with name: %s", clusterName)
 	return nil
 }
 
@@ -283,7 +362,6 @@ func newArgoCDConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*ArgoCDConf
 		return nil, err
 	}
 	ac.Host = hostname
-	ac.BaseURL = "https://" + ac.Host
 
 	caCert, err := common.GetRootCA(rdr)
 	if err != nil {

@@ -189,7 +189,7 @@ func (s *Syncer) updateVMCStatus() error {
 	}
 
 	if vmc.Status.ArgoCDRegistration.Status != v1alpha1.MCRegistrationFailed {
-		vmc.Status.ArgoCDRegistration.Status = v1alpha1.MCRegistrationCompleted
+		vmc.Status.ArgoCDRegistration.Status = v1alpha1.RegistrationMCResourceCreationCompleted
 	}
 
 	// update status of VMC
