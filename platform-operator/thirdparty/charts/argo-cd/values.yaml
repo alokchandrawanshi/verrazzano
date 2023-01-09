@@ -82,10 +82,13 @@ global:
 
   # -- Toggle and define pod-level security context.
   # @default -- `{}` (See [values.yaml])
-  securityContext: {}
-  #  runAsUser: 999
-  #  runAsGroup: 999
-  #  fsGroup: 999
+  securityContext:
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
 
   # -- Mapping between IP and hostnames that will be injected as entries in the pod's hosts files
   hostAliases: []
@@ -558,6 +561,7 @@ controller:
   # -- Application controller container-level security context
   # @default -- See [values.yaml]
   containerSecurityContext:
+    privileged: false
     runAsNonRoot: true
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
@@ -566,6 +570,8 @@ controller:
     capabilities:
       drop:
       - ALL
+      add:
+      - NET_BIND_SERVICE
 
   # -- Application controller listening port
   containerPort: 8082
@@ -1054,17 +1060,21 @@ redis:
   # @default -- See [values.yaml]
   securityContext:
     runAsNonRoot: true
-    runAsUser: 999
+    runAsUser: 1001
+    runAsGroup: 1001
     seccompProfile:
       type: RuntimeDefault
 
   # -- Redis container-level security context
   # @default -- See [values.yaml]
   containerSecurityContext:
+    privileged: false
     allowPrivilegeEscalation: false
     capabilities:
       drop:
       - ALL
+      add:
+      - NET_BIND_SERVICE
 
   # -- [Node selector]
   nodeSelector: {}
@@ -1425,11 +1435,14 @@ server:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
+    privileged: false
     seccompProfile:
       type: RuntimeDefault
     capabilities:
       drop:
       - ALL
+      add:
+      - NET_BIND_SERVICE
 
   # -- Resource limits and requests for the Argo CD server
   resources: {}
@@ -1810,13 +1823,15 @@ server:
     containerSecurityContext:
       runAsNonRoot: true
       readOnlyRootFilesystem: true
+      privileged: false
       allowPrivilegeEscalation: false
       seccompProfile:
         type: RuntimeDefault
       capabilities:
         drop:
         - ALL
-
+        add:
+        - NET_BIND_SERVICE
     # -- Resource limits and requests for the argocd-extensions container
     resources: {}
     #  limits:
@@ -1987,12 +2002,15 @@ repoServer:
   containerSecurityContext:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
+    privileged: false
     allowPrivilegeEscalation: false
     seccompProfile:
       type: RuntimeDefault
     capabilities:
       drop:
       - ALL
+      add:
+      - NET_BIND_SERVICE
 
   # -- Resource limits and requests for the repo server pods
   resources: {}
@@ -2262,12 +2280,15 @@ applicationSet:
   containerSecurityContext:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
+    privileged: false
     allowPrivilegeEscalation: false
     seccompProfile:
       type: RuntimeDefault
     capabilities:
       drop:
       - ALL
+      add:
+      - NET_BIND_SERVICE
 
   ## Probes for ApplicationSet controller (optional)
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/
@@ -2555,12 +2576,15 @@ notifications:
   containerSecurityContext:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
+    privileged: false
     allowPrivilegeEscalation: false
     seccompProfile:
       type: RuntimeDefault
     capabilities:
       drop:
       - ALL
+      add:
+      - NET_BIND_SERVICE
 
   # -- Priority class for the controller pods
   priorityClassName: ""
