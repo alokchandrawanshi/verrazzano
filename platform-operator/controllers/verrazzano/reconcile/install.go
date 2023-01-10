@@ -180,8 +180,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			if err = r.cleanupMysqlBackupJob(spiCtx.Log()); err != nil {
 				return newRequeueWithDelay(), err
 			}
+			tracker.vzState = vzStateReconcileEnd
 		}
-		tracker.vzState = vzStateReconcileEnd
 	}
 
 	deleteInstallTracker(spiCtx.ActualCR())
