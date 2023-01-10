@@ -845,7 +845,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 		return []spi.Component{
 			fakeComponent{
 				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, fmt.Errorf("Error running isInstalled")
+					return false, fmt.Errorf("Error running isInitialInstall")
 				},
 			},
 		}

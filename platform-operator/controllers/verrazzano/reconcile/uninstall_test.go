@@ -340,7 +340,7 @@ func TestUninstallVariations(t *testing.T) {
 			// Delete tracker so each test has a fresh state machine
 			DeleteUninstallTracker(vzcr)
 
-			// reconcile a first time with isInstalled returning true
+			// reconcile a first time with isInitialInstall returning true
 			registry.OverrideGetComponentsFn(func() []spi.Component {
 				return []spi.Component{
 					fakeComponent{
@@ -366,7 +366,7 @@ func TestUninstallVariations(t *testing.T) {
 			asserts.Equal(true, result.Requeue)
 			asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 
-			// reconcile a second time with isInstalled returning false
+			// reconcile a second time with isInitialInstall returning false
 			registry.OverrideGetComponentsFn(func() []spi.Component {
 				return []spi.Component{
 					fakeComponent{

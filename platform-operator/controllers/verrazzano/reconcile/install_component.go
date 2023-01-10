@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -284,7 +284,7 @@ func skipComponentFromDisabledState(compContext spi.ComponentContext, comp spi.C
 // skipComponentFromReadyState contains the logic about whether to go straight to the component terminal state from compStateInstallInitReady
 func skipComponentFromReadyState(compContext spi.ComponentContext, comp spi.Component, componentStatus *vzapi.ComponentStatusDetails) bool {
 	// Don't reconcile (updates) during install
-	if !isInstalled(compContext.ActualCR().Status) {
+	if isInitialInstall(compContext.ActualCR().Status) {
 		return true
 	}
 	// only run component install if the component generation does not match the CR generation

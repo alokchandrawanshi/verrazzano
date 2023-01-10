@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -10,43 +10,40 @@ import (
 	goerrors "errors"
 	"fmt"
 	"io"
-
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	kblabels "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	"github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	pkglog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
+
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kblabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -94,7 +91,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, goerrors.New("context cannot be nil")
 	}
 	// Get the Verrazzano resource
-	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
+	zapLogForMetrics := zap.S().With(pkglog.FieldController, "verrazzano")
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
 	if err != nil {
 		zapLogForMetrics.Error(err)
@@ -210,7 +207,6 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 	actualCR := vzctx.ActualCR
 
 	log.Debugf("Entering ProcReadyState")
-	ctx := context.TODO()
 
 	// Pre-populate the component status fields
 	result, err := r.initializeComponentStatus(log, actualCR)
@@ -220,83 +216,32 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		return result, nil
 	}
 
-	// If Verrazzano is installed see if upgrade is needed
-	if isInstalled(actualCR.Status) {
-		if len(actualCR.Spec.Version) > 0 {
-			specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
-			statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
-			// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
-			if specVersion.CompareTo(statusVersion) != 0 {
-				// Transition to upgrade state
-				r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
-				return newRequeueWithDelay(), err
-			}
-		}
-
-		// Keep retrying to reconcile components until it completes
-		if result, err := r.reconcileComponents(vzctx, false); err != nil {
-			return newRequeueWithDelay(), err
-		} else if vzctrl.ShouldRequeue(result) {
-			return result, nil
-		}
-
-		// Delete leftover MySQL backup job if we find one.
-		err = r.cleanupMysqlBackupJob(log)
+	// If spec.version is set see if upgrade is needed
+	if len(actualCR.Spec.Version) > 0 {
+		specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
 		if err != nil {
 			return newRequeueWithDelay(), err
 		}
-
-		return ctrl.Result{}, nil
-	}
-
-	// if an OCI DNS installation, make sure the secret required exists before proceeding
-	if actualCR.Spec.Components.DNS != nil && actualCR.Spec.Components.DNS.OCI != nil {
-		err := r.doesOCIDNSConfigSecretExist(actualCR)
+		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
 		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+		// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
+		if specVersion.CompareTo(statusVersion) != 0 {
+			// Transition to upgrade state
+			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
 			return newRequeueWithDelay(), err
 		}
 	}
 
-	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
-	// since it is needed for the subsequent step to syncLocalRegistration secret.
-	if err := r.createVerrazzanoSystemNamespace(ctx, actualCR, log); err != nil {
+	// Keep retrying to reconcile components until it completes
+	if result, err = r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
 	}
 
-	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
-	// admin cluster without needing a VMC.
-	if err := r.syncLocalRegistrationSecret(); err != nil {
-		log.Errorf("Failed to sync the local registration secret: %v", err)
-		return newRequeueWithDelay(), err
-	}
-
-	// Change the state back to ready if install complete otherwise requeue
-	done, err := r.checkInstallComplete(vzctx)
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
-	if done {
-		return ctrl.Result{}, nil
-	}
-
-	// Delete leftover uninstall job if we find one.
-	err = r.cleanupUninstallJob(buildUninstallJobName(actualCR.Name), getInstallNamespace(), log)
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
-
-	// Change the state to installing
-	err = r.setInstallingState(log, actualCR)
-	if err != nil {
-		log.ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
-	}
-	return newRequeueWithDelay(), err
+	return ctrl.Result{}, nil
 }
 
 // ProcReconcilingState processes the CR while in the installing state
@@ -692,7 +637,6 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *in
 		return nil
 	}
 	// Namespace exists, see if we need to add the label
-	log.Oncef("Updating Verrazzano system namespace")
 	var updated bool
 	vzSystemNS.Labels, updated = mergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
 	if !updated {

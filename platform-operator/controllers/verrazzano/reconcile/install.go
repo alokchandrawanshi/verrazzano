@@ -4,6 +4,7 @@
 package reconcile
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
@@ -26,11 +27,17 @@ const (
 	// vzStateSetGlobalInstallStatus is the state where the VZ Install Started status is written
 	vzStateSetGlobalInstallStatus reconcileState = "vzSetGlobalInstallStatus"
 
+	// vzStateReconcileWatchedComponents is the state where watched components are reconciled
+	vzStatePreInstall reconcileState = "vzPreInstall"
+
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
 
 	// vzStatePostInstall is the global PostInstall state
 	vzStatePostInstall reconcileState = "vzPostInstall"
+
+	// vzStateCleanupOldJobs cleans up old jobs
+	vzStateCleanupOldJobs reconcileState = "vzCleanupOldJobs"
 
 	// vzStateReconcileEnd is the terminal state
 	vzStateReconcileEnd reconcileState = "vzReconcileEnd"
@@ -101,7 +108,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 
 		// vzStateReconcileWatchedComponents reconciles first to fix up any broken components
 		case vzStateReconcileWatchedComponents:
-			if spiCtx.ActualCR().Status.State != vzapi.VzStateUpgrading {
+			if !isInitialInstall(spiCtx.ActualCR().Status) && spiCtx.ActualCR().Status.State != vzapi.VzStateUpgrading {
 				// loop through all the components and call comp.Reconcile if the component is on the watched list
 				if err := r.reconcileWatchedComponents(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
@@ -111,10 +118,14 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 
 		case vzStateDecideUpdateNeeded:
 			// reconcileComponents is called from Ready, Reconciling, and Upgrading states
-			// if the VZ state is Ready, start an install if the generation is updated and end reconciling if not
+			// if the VZ state is Ready, start an install if this is an initial install
+			// or if the generation is updated
+			// end reconciling if not
 			// if the VZ state is not Ready, proceed with installing components
 			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
-				if checkGenerationUpdated(spiCtx) {
+				if isInitialInstall(spiCtx.ActualCR().Status) {
+					tracker.vzState = vzStateSetGlobalInstallStatus
+				} else if checkGenerationUpdated(spiCtx) {
 					// Start global upgrade
 					tracker.vzState = vzStateSetGlobalInstallStatus
 				} else {
@@ -124,19 +135,23 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			}
 			// if the VZ state is not Ready, it must be Reconciling or Upgrading
 			// in either case, go right to installComponents
-			tracker.vzState = vzStateInstallComponents
-			r.beforeInstallComponents(spiCtx)
+			tracker.vzState = vzStatePreInstall
 
 		case vzStateSetGlobalInstallStatus:
 			spiCtx.Log().Oncef("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
-			if err := r.setInstallingState(vzctx.Log, spiCtx.ActualCR()); err != nil {
+			if err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR()); err != nil {
 				spiCtx.Log().ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
 				return ctrl.Result{Requeue: true}, err
 			}
-			tracker.vzState = vzStateInstallComponents
-			r.beforeInstallComponents(spiCtx)
+			tracker.vzState = vzStatePreInstall
 			// since we updated the status, requeue to pick up new changes
 			return ctrl.Result{Requeue: true}, nil
+
+		case vzStatePreInstall:
+			if err = r.preInstall(spiCtx); err != nil {
+				return newRequeueWithDelay(), err
+			}
+			tracker.vzState = vzStateInstallComponents
 
 		case vzStateInstallComponents:
 			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
@@ -154,8 +169,19 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 					return ctrl.Result{Requeue: true}, err
 				}
 			}
-			tracker.vzState = vzStateReconcileEnd
+			tracker.vzState = vzStateCleanupOldJobs
+
+		case vzStateCleanupOldJobs:
+			// Delete leftover uninstall job if we find one.
+			if err = r.cleanupUninstallJob(buildUninstallJobName(spiCtx.ActualCR().Name), getInstallNamespace(), spiCtx.Log()); err != nil {
+				return newRequeueWithDelay(), err
+			}
+			// Delete leftover MySQL backup job if we find one.
+			if err = r.cleanupMysqlBackupJob(spiCtx.Log()); err != nil {
+				return newRequeueWithDelay(), err
+			}
 		}
+		tracker.vzState = vzStateReconcileEnd
 	}
 
 	deleteInstallTracker(spiCtx.ActualCR())
@@ -198,6 +224,27 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 	return nil
 }
 
-func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
+func (r *Reconciler) preInstall(ctx spi.ComponentContext) error {
 	r.createRancherIngressAndCertCopies(ctx)
+
+	// if an OCI DNS installation, make sure the secret required exists before proceeding
+	if ctx.ActualCR().Spec.Components.DNS != nil && ctx.ActualCR().Spec.Components.DNS.OCI != nil {
+		if err := r.doesOCIDNSConfigSecretExist(ctx.ActualCR()); err != nil {
+			return err
+		}
+	}
+
+	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
+	// since it is needed for the subsequent step to syncLocalRegistration secret.
+	if err := r.createVerrazzanoSystemNamespace(context.TODO(), ctx.ActualCR(), ctx.Log()); err != nil {
+		return err
+	}
+
+	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
+	// admin cluster without needing a VMC.
+	if err := r.syncLocalRegistrationSecret(); err != nil {
+		ctx.Log().Errorf("Failed to sync the local registration secret: %v", err)
+		return err
+	}
+	return nil
 }
