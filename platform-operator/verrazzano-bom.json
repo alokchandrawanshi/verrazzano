@@ -183,8 +183,10 @@
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
+              "registry": "iad.ocir.io",
+              "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20221208053759-f85741b",
+              "tag": "20230111045952-8368546",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
