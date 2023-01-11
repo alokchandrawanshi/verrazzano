@@ -24,12 +24,6 @@ spec:
           command: ["/init/init.sh"]
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
-          securityContext:
-            privileged: false
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
           volumeMounts:
             - mountPath: /init
               name: {{ .Values.logging.name }}-init
