@@ -186,7 +186,7 @@
               "registry": "iad.ocir.io",
               "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "20230111045952-8368546",
+              "tag": "20230111081222-b8c23a6",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
