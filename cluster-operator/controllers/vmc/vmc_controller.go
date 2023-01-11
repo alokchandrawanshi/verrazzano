@@ -227,9 +227,14 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	var argoCDRegistration *clustersv1alpha1.ArgoCDRegistration
 	if r.isArgoCDEnabled() {
 		if r.isRancherEnabled() {
-			argoCDRegistration, err = r.registerManagedClusterWithArgoCD(ctx, vmc)
+			//err = r.updateArgoCDClusterRoleBindingTemplate(vmc)
+			//if err != nil {
+			//	r.handleError(ctx, vmc, "Failed to update ArgoCD ClusterRoleBindingTemplate", err, log)
+			//	return newRequeueWithDelay(), err
+			//}
+			argoCDRegistration, err = r.registerManagedClusterWithArgoCD(vmc)
 			if err != nil {
-				r.handleError(ctx, vmc, "Failed to register managed cluster with ArgoCD", err, log)
+				r.handleError(ctx, vmc, "Failed to register managed cluster with Argo CD", err, log)
 				_ = r.updateStatus(ctx, vmc, func(vmc *clustersv1alpha1.VerrazzanoManagedCluster) {
 					if argoCDRegistration != nil {
 						vmc.Status.ArgoCDRegistration = *argoCDRegistration
@@ -241,7 +246,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 			vmc.Status.ArgoCDRegistration = clustersv1alpha1.ArgoCDRegistration{
 				Status:    clustersv1alpha1.RegistrationPendingRancher,
 				Timestamp: "",
-				Message:   "Waiting for Verrazzano-created VMC named %s to have the Rancher registration manifest applied before ArgoCD cluster registration"}
+				Message:   "Waiting for Verrazzano-created VMC named %s to have the Rancher registration manifest applied before Argo CD cluster registration"}
 		}
 	}
 
