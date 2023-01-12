@@ -243,9 +243,10 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 				return newRequeueWithDelay(), err
 			}
 		} else {
+			now := metav1.Now()
 			vmc.Status.ArgoCDRegistration = clustersv1alpha1.ArgoCDRegistration{
 				Status:    clustersv1alpha1.RegistrationPendingRancher,
-				Timestamp: "",
+				Timestamp: &now,
 				Message:   "Waiting for Verrazzano-created VMC named %s to have the Rancher registration manifest applied before Argo CD cluster registration"}
 		}
 	}
