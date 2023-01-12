@@ -111,7 +111,7 @@ type ArgoCDRegistration struct {
 	// The status of the ArgoCD registration
 	Status ArgoCDRegistrationStatus `json:"status"`
 	// The timestamp of last status set
-	Timestamp string `json:"lastSetTimestamp"`
+	Timestamp *metav1.Time `json:"lastSetTimestamp"`
 	// Supporting message related to the Rancher registration status
 	// +optional
 	Message string `json:"message,omitempty"`
