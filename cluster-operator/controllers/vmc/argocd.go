@@ -96,7 +96,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
 	}
 
-	if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationMCResourceCreationCompleted {
+	if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationMCResourceCreationCompleted || vmc.Status.ArgoCDRegistration.Status == clusterapi.MCRegistrationFailed {
 		vz, err := r.getVerrazzanoResource()
 		if err != nil {
 			msg := "Could not find Verrazzano resource"
@@ -193,18 +193,6 @@ func (r *VerrazzanoManagedClusterReconciler) argocdClusterAdd(vmc *clusterapi.Ve
 
 	r.log.Oncef("Successfully registered managed cluster in ArgoCD with name: %s", vmc.Name)
 	return nil
-}
-
-func GetArgoClusterUserSecret(rdr client.Reader) (string, error) {
-	secret := &corev1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: constants.VerrazzanoMultiClusterNamespace,
-		Name:      vzconst.ArgoCDClusterRancherName}
-
-	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
-		return "", err
-	}
-	return string(secret.Data["password"]), nil
 }
 
 type TLSClientConfig struct {
