@@ -91,8 +91,8 @@ func (r *VerrazzanoManagedClusterReconciler) isRancherEnabled() bool {
 // registerManagedClusterWithArgoCD calls the ArgoCD api to register a managed cluster with ArgoCD
 func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vmc *clusterapi.VerrazzanoManagedCluster) (*clusterapi.ArgoCDRegistration, error) {
 	clusterID := vmc.Status.RancherRegistration.ClusterID
-	//if len(clusterID) == 0 || vmc.Status.State != clusterapi.StateActive {
-	if len(clusterID) == 0 {
+	if len(clusterID) == 0 || vmc.Status.State != clusterapi.StateActive {
+		//if len(clusterID) == 0 {
 		msg := "Waiting for Rancher managed cluster to become active"
 		r.log.Progressf(msg)
 		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
