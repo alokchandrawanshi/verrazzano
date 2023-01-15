@@ -90,11 +90,21 @@ func (r *VerrazzanoManagedClusterReconciler) isRancherEnabled() bool {
 // registerManagedClusterWithArgoCD calls the ArgoCD api to register a managed cluster with ArgoCD
 func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vmc *clusterapi.VerrazzanoManagedCluster) (*clusterapi.ArgoCDRegistration, error) {
 	clusterID := vmc.Status.RancherRegistration.ClusterID
-	if len(clusterID) == 0 || vmc.Status.State != clusterapi.StateActive {
-		//if len(clusterID) == 0 {
-		msg := "Waiting for Rancher managed cluster to become active"
-		r.log.Progressf(msg)
+	if len(clusterID) == 0 {
+		msg := "Waiting for Rancher manifest to be applied on the managed cluster"
 		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
+	}
+
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
+	if err != nil || rc == nil {
+		msg := "Could not create rancher config that authenticates with the admin user"
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
+	}
+
+	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
+	if err != nil || !isActive {
+		msg := "Waiting for managed cluster with id %s to become active before registrating cluster in Argo CD\", clusterID)"
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
 	}
 
 	if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationMCResourceCreationCompleted || vmc.Status.ArgoCDRegistration.Status == clusterapi.MCRegistrationFailed {

@@ -141,8 +141,8 @@ func (s *Syncer) CreateArgoCDResources() error {
 	if err != nil {
 		return err
 	}
-	// check if argocd is enabled on admin cluster also
-	if len(vmc.Status.RancherRegistration.ClusterID) > 0 && vmc.Status.State == v1alpha1.StateActive && vmc.Status.ArgoCDRegistration.Status == v1alpha1.RegistrationPendingRancher {
+	//TODO: ok to use rancherRegistration.Status Completed instead of vmc.Status.State being Active?
+	if len(vmc.Status.RancherRegistration.ClusterID) > 0 && vmc.Status.RancherRegistration.Status == v1alpha1.RegistrationCompleted && vmc.Status.ArgoCDRegistration.Status == v1alpha1.RegistrationPendingRancher {
 		localCASecretData, err := s.getLocalClusterCASecretData()
 		if err != nil {
 			return err
