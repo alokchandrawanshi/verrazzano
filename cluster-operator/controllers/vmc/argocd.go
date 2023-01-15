@@ -103,7 +103,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 
 	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
 	if err != nil || !isActive {
-		msg := "Waiting for managed cluster with id %s to become active before registrating cluster in Argo CD\", clusterID)"
+		msg := "Waiting for managed cluster with id %s to become active before registering cluster in Argo CD\", clusterID)"
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
 	}
 
