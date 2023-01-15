@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"io"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net"
@@ -90,7 +91,8 @@ func (r *VerrazzanoManagedClusterReconciler) isRancherEnabled() bool {
 // registerManagedClusterWithArgoCD calls the ArgoCD api to register a managed cluster with ArgoCD
 func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vmc *clusterapi.VerrazzanoManagedCluster) (*clusterapi.ArgoCDRegistration, error) {
 	clusterID := vmc.Status.RancherRegistration.ClusterID
-	if len(clusterID) == 0 || vmc.Status.State != clusterapi.StateActive {
+	//if len(clusterID) == 0 || vmc.Status.State != clusterapi.StateActive {
+	if len(clusterID) == 0 {
 		msg := "Waiting for Rancher managed cluster to become active"
 		r.log.Progressf(msg)
 		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
@@ -128,7 +130,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call Argo CD clusters GET API on admin cluster: %v", err)
 		}
 		if isRegistered {
-			msg := fmt.Sprintf("Verrazzano-created VMC named %s is alredy registered in Argo CD cluster", vmc.Name)
+			msg := fmt.Sprintf("Verrazzano-created VMC named %s is already registered in Argo CD cluster", vmc.Name)
 			return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
 		}
 
@@ -137,6 +139,8 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 			msg := "Failed to create Argo CD cluster secret"
 			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call Argo CD clusters POST API on admin cluster: %v", err)
 		}
+		msg := fmt.Sprintf("Successfully registered managed cluster in ArgoCD with name: %s", vmc.Name)
+		return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
 	}
 
 	return nil, nil
@@ -237,6 +241,23 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 		return err
 	}
 	secret.StringData["config"] = string(data)
+
+	return nil
+}
+
+func (r *VerrazzanoManagedClusterReconciler) unregisterClusterFromArgoCD(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster) error {
+	clusterSec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vmc.Name + "-" + clusterSecretName,
+			Namespace: constants.ArgoCDNamespace,
+		},
+	}
+	if err := r.Delete(context.TODO(), &clusterSec); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return r.log.ErrorfNewErr("Failed to delete Argo CD cluster secret for vmc: %s, %v", vmc.Name, err)
+	}
 
 	return nil
 }

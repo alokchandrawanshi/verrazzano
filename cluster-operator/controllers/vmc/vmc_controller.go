@@ -247,7 +247,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 			vmc.Status.ArgoCDRegistration = clustersv1alpha1.ArgoCDRegistration{
 				Status:    clustersv1alpha1.RegistrationPendingRancher,
 				Timestamp: &now,
-				Message:   "Waiting for Verrazzano-created VMC named %s to have the Rancher registration manifest applied before Argo CD cluster registration"}
+				Message:   "Waiting for Rancher managed cluster to become active"}
 		}
 	}
 
@@ -394,6 +394,9 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx c
 	if err := r.deleteClusterPrometheusConfiguration(ctx, vmc); err != nil {
 		return err
 	}
+	//if err := r.unregisterClusterFromArgoCD(ctx, vmc); err != nil {
+	//	return err
+	//}
 	return r.deleteClusterFromRancher(ctx, vmc)
 }
 

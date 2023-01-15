@@ -4,11 +4,14 @@
 package mcagent
 
 import (
+	"fmt"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -126,6 +129,34 @@ func (s *Syncer) createArgocdResources(secretData []byte) error {
 	}
 	if err := s.createArgoCDRoleBinding(); err != nil {
 		return err
+	}
+	return nil
+}
+
+// Create argocd k8s resources if (1) the rancher cluster id is populated and (2) the vmc state is active
+func (s *Syncer) CreateArgoCDResources() error {
+	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
+	vmc := v1alpha1.VerrazzanoManagedCluster{}
+	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
+	if err != nil {
+		return err
+	}
+	// check if argocd is enabled on admin cluster also
+	if len(vmc.Status.RancherRegistration.ClusterID) > 0 && vmc.Status.State == v1alpha1.StateActive && vmc.Status.ArgoCDRegistration.Status == v1alpha1.RegistrationPendingRancher {
+		localCASecretData, err := s.getLocalClusterCASecretData()
+		if err != nil {
+			return err
+		}
+		err = s.createArgocdResources(localCASecretData)
+		if err != nil {
+			s.Log.Errorf("Failed to create Argo CD resources for vmc %s: %v", vmc.Name, err)
+			return err
+		}
+		now := metav1.Now()
+		vmc.Status.ArgoCDRegistration = v1alpha1.ArgoCDRegistration{
+			Status:    v1alpha1.RegistrationMCResourceCreationCompleted,
+			Timestamp: &now,
+			Message:   fmt.Sprintf("Successfully created Argo CD resources for vmc %s:", vmc.Name)}
 	}
 	return nil
 }
