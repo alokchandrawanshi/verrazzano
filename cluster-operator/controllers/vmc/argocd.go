@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"io"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net"
@@ -245,6 +244,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	return nil
 }
 
+/*
 func (r *VerrazzanoManagedClusterReconciler) unregisterClusterFromArgoCD(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster) error {
 	clusterSec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -261,6 +261,7 @@ func (r *VerrazzanoManagedClusterReconciler) unregisterClusterFromArgoCD(ctx con
 
 	return nil
 }
+*/
 
 // getArgoCACert the initial build-in admin user admi password. If the secret does not exist, we
 // return a nil slice.
