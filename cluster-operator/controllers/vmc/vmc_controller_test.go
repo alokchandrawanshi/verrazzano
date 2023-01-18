@@ -2552,6 +2552,13 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 			return nil
 		})
 
+	// Expect a call to delete the argocd cluster secret
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			return nil
+		})
+
 	// Expect Rancher k8s calls to configure the API client
 	expectRancherConfigK8sCalls(t, mock, true)
 }

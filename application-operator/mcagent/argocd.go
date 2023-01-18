@@ -4,7 +4,6 @@
 package mcagent
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -64,7 +63,7 @@ func (s *Syncer) createArgoCDRoleBinding() error {
 	binding := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: clusterRoleBindingName}}
 
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &binding, func() error {
-		mutateRoleBinding(binding)
+		mutateRoleBinding(&binding)
 		s.Log.Debugf("createArgoCDRoleBinding: ArgoCD Rolebinding created successfully")
 		return nil
 	})
@@ -102,7 +101,7 @@ func mutateClusterRole(role rbacv1.ClusterRole) {
 	}
 }
 
-func mutateRoleBinding(binding rbacv1.ClusterRoleBinding) {
+func mutateRoleBinding(binding *rbacv1.ClusterRoleBinding) {
 	binding.RoleRef = rbacv1.RoleRef{
 		APIGroup: rbacv1.GroupName,
 		Kind:     "ClusterRole",
@@ -134,29 +133,25 @@ func (s *Syncer) createArgocdResources(secretData []byte) error {
 }
 
 // Create argocd k8s resources if (1) the rancher cluster id is populated and (2) the vmc state is active
-func (s *Syncer) CreateArgoCDResources() error {
+func (s *Syncer) CreateArgoCDResources() (bool, error) {
 	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 	vmc := v1alpha1.VerrazzanoManagedCluster{}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
 	if err != nil {
-		return err
+		return false, err
 	}
 	//TODO: ok to use rancherRegistration.Status Completed instead of vmc.Status.State being Active?
 	if len(vmc.Status.RancherRegistration.ClusterID) > 0 && vmc.Status.RancherRegistration.Status == v1alpha1.RegistrationCompleted && vmc.Status.ArgoCDRegistration.Status == v1alpha1.RegistrationPendingRancher {
 		localCASecretData, err := s.getLocalClusterCASecretData()
 		if err != nil {
-			return err
+			return false, err
 		}
 		err = s.createArgocdResources(localCASecretData)
 		if err != nil {
 			s.Log.Errorf("Failed to create Argo CD resources for vmc %s: %v", vmc.Name, err)
-			return err
+			return false, err
 		}
-		now := metav1.Now()
-		vmc.Status.ArgoCDRegistration = v1alpha1.ArgoCDRegistration{
-			Status:    v1alpha1.RegistrationMCResourceCreationCompleted,
-			Timestamp: &now,
-			Message:   fmt.Sprintf("Successfully created Argo CD resources for vmc %s:", vmc.Name)}
+		return true, nil
 	}
-	return nil
+	return false, nil
 }

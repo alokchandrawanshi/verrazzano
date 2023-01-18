@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"io"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net"
@@ -95,19 +96,20 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
 	}
 
-	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
-	if err != nil || rc == nil {
-		msg := "Could not create rancher config that authenticates with the admin user"
-		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
-	}
+	//if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationMCResourceCreationCompleted || vmc.Status.ArgoCDRegistration.Status == clusterapi.MCRegistrationFailed || vmc.Status.ArgoCDRegistration.Status != clusterapi.MCRegistrationCompleted {
+	if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationPendingRancher || vmc.Status.ArgoCDRegistration.Status == clusterapi.MCRegistrationFailed || vmc.Status.ArgoCDRegistration.Status != clusterapi.MCRegistrationCompleted {
+		// If the managed cluster is not active, we should not attempt to register in Argo CD
+		rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
+		if err != nil || rc == nil {
+			msg := "Could not create rancher config that authenticates with the admin user"
+			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
+		}
+		isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
+		if err != nil || !isActive {
+			msg := fmt.Sprintf("Waiting for managed cluster with id %s to become active before registering in Argo CD", clusterID)
+			return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
+		}
 
-	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
-	if err != nil || !isActive {
-		msg := fmt.Sprintf("Waiting for managed cluster with id %s to become active before registering in Argo CD", clusterID)
-		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
-	}
-
-	if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationMCResourceCreationCompleted || vmc.Status.ArgoCDRegistration.Status == clusterapi.MCRegistrationFailed {
 		vz, err := r.getVerrazzanoResource()
 		if err != nil {
 			msg := "Could not find Verrazzano resource"
@@ -139,7 +141,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call Argo CD clusters GET API on admin cluster: %v", err)
 		}
 		if isRegistered {
-			msg := fmt.Sprintf("Verrazzano-created VMC named %s is already registered in Argo CD cluster", vmc.Name)
+			msg := "Cluster is already registered in Argo CD"
 			return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
 		}
 
@@ -148,7 +150,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 			msg := "Failed to create Argo CD cluster secret"
 			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call Argo CD clusters POST API on admin cluster: %v", err)
 		}
-		msg := fmt.Sprintf("Successfully registered managed cluster in ArgoCD with name: %s", vmc.Name)
+		msg := "Successfully registered managed cluster in ArgoCD"
 		return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
 	}
 
@@ -254,7 +256,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	return nil
 }
 
-/*
 func (r *VerrazzanoManagedClusterReconciler) unregisterClusterFromArgoCD(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster) error {
 	clusterSec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -266,12 +267,11 @@ func (r *VerrazzanoManagedClusterReconciler) unregisterClusterFromArgoCD(ctx con
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		return r.log.ErrorfNewErr("Failed to delete Argo CD cluster secret for vmc: %s, %v", vmc.Name, err)
+		return r.log.ErrorfNewErr("Failed to delete Argo CD cluster secret", err)
 	}
 
 	return nil
 }
-*/
 
 // getArgoCACert the initial build-in admin user admi password. If the secret does not exist, we
 // return a nil slice.
