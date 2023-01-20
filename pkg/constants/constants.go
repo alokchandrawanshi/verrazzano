@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -170,6 +170,12 @@ const VerrazzanoClusterRancherName = "verrazzano-cluster-registrar"
 
 // VerrazzanoClusterRancherUsername is the username in Rancher used to identify the Verrazzano cluster user
 const VerrazzanoClusterRancherUsername = "vz-cluster-reg"
+
+// ArgoCDClusterRancherUsername is the name for the Rancher cluster role and secret used to grant permissions to the Verrazzano argocd user
+const ArgoCDClusterRancherName = "verrazzano-argocd-registrar"
+
+// ArgoCDClusterRancherName is the username in Rancher used to identify the Verrazzano argocd user for cluster registration
+const ArgoCDClusterRancherUsername = "vz-argocd-reg"
 
 // Components Names
 const (
