@@ -1,0 +1,74 @@
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: example-deployment
+spec:
+  workload:
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: food-trucks
+      name: food-trucks-deployment
+    spec:
+      selector:
+        matchLabels:
+          app: food-trucks
+      template:
+        metadata:
+          labels:
+            app: food-trucks
+        spec:
+          containers:
+          - env:
+            - name: discovery.type
+              value: single-node
+            image: zzxwill/foodtrucks-web:0.1.1
+            name: food-trucks-web
+            ports:
+            - containerPort: 5000
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              privileged: false
+          - image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+            name: es
+            ports:
+            - containerPort: 9200
+            - containerPort: 9300
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              privileged: false
+          securityContext:
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+---
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: example-service
+spec:
+  workload:
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: food-trucks
+      name: food-trucks-service
+    spec:
+      ports:
+      - name: tcp-food-trucs
+        port: 5000
+        protocol: TCP
+      selector:
+        app: food-trucks
+

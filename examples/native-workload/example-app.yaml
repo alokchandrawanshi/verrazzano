@@ -1,0 +1,51 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
+# Example of using the VerrazzanoHelidonWorkload as a "generic" workload type to implement custom security
+# settings, which is not supported by the OAM ContainerizedWorkload
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterApplicationConfiguration
+metadata:
+  name: example-deployment-appconf
+  annotations:
+    version: v1.0.0
+spec:
+  components:
+    - componentName: example-service
+    - componentName: example-deployment
+      traits:
+        - trait:
+            apiVersion: networking.istio.io/v1beta1
+            kind: VirtualService
+            metadata:
+              name: example-vs
+            spec:
+              gateways:
+                - example-gw
+              hosts:
+                - example.172.19.0.230.nip.io
+              http:
+                - match:
+                    - uri:
+                        prefix: /
+                  route:
+                    - destination:
+                        host: food-trucks-service
+                        port:
+                          number: 5000
+        - trait:
+            apiVersion: networking.istio.io/v1beta1
+            kind: Gateway
+            metadata:
+              name: example-gw
+            spec:
+              selector:
+                istio: ingressgateway
+              servers:
+                - hosts:
+                    - example.172.19.0.230.nip.io
+                  name: food-trucks-ingress
+                  port:
+                    name: food-trucks-ingress
+                    number: 80
+                    protocol: HTTP
