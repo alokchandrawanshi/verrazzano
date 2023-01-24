@@ -306,9 +306,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTempl
 	resource.SetNamespace(nsn.Namespace)
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &resource, func() error {
 		data := resource.UnstructuredContent()
-		data["clusterId"] = clusterID
-		data["userPrincipalId"] = userID
-		data["roleTemplateId"] = "cluster-member"
+		data[ClusterRoleTemplateBindingAttributeClusterName] = clusterID
+		data[ClusterRoleTemplateBindingAttributeUserName] = userID
+		data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = "cluster-owner"
 		return nil
 	})
 	if err != nil {

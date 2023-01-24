@@ -406,11 +406,11 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 	expectGetPrometheusHostCalled(localClientMock)
 	// Mock the success of status updates and assert that updateVMCStatus returns nil error
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
-	assert.Nil(s.updateVMCStatus(false))
+	assert.Nil(s.updateVMCStatus())
 
 	// Mock the failure of status updates and assert that updateVMCStatus returns non-nil error
 	expectAdminVMCStatusUpdateFailure(adminMock, vmcName, adminStatusMock, assert)
-	assert.NotNil(s.updateVMCStatus(false))
+	assert.NotNil(s.updateVMCStatus())
 
 	adminMocker.Finish()
 }

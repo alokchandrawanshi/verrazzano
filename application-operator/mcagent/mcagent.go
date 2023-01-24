@@ -111,14 +111,15 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.SecretResourceVersion = secret.ResourceVersion
 	}
 
-	// Create argocd k8s resources
-	created, err := s.CreateArgoCDResources()
-	if err != nil {
-		s.Log.Errorf("Failed to create Argo CD resources: %v", err)
-	}
+	/*
+		created, err := s.CreateArgoCDResources()
+		if err != nil {
+			s.Log.Errorf("Failed to create Argo CD resources: %v", err)
+		}
+	*/
 
 	// Update the status of our VMC on the admin cluster to record the last time we connected
-	err = s.updateVMCStatus(created)
+	err = s.updateVMCStatus()
 	if err != nil {
 		// we couldn't update status of the VMC - but we should keep going with the rest of the work
 		s.Log.Errorf("Failed to update VMC status on admin cluster: %v", err)
@@ -150,7 +151,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	return nil
 }
 
-func (s *Syncer) updateVMCStatus(argocdReosurcesCreated bool) error {
+func (s *Syncer) updateVMCStatus() error {
 	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 	vmc := v1alpha1.VerrazzanoManagedCluster{}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
@@ -169,14 +170,6 @@ func (s *Syncer) updateVMCStatus(argocdReosurcesCreated bool) error {
 	prometheusHost, err := s.GetPrometheusHost()
 	if err != nil {
 		return fmt.Errorf("Failed to get api prometheus host for vmc %s with error %v", vmcName, err)
-	}
-
-	if argocdReosurcesCreated {
-		now := metav1.Now()
-		vmc.Status.ArgoCDRegistration = v1alpha1.ArgoCDRegistration{
-			Status:    v1alpha1.RegistrationMCResourceCreationCompleted,
-			Timestamp: &now,
-			Message:   "Successfully created Argo CD resources"}
 	}
 
 	if prometheusHost != "" {
