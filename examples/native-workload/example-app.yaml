@@ -3,8 +3,8 @@
 #
 # Example of using the VerrazzanoHelidonWorkload as a "generic" workload type to implement custom security
 # settings, which is not supported by the OAM ContainerizedWorkload
-apiVersion: clusters.verrazzano.io/v1alpha1
-kind: MultiClusterApplicationConfiguration
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
 metadata:
   name: example-deployment-appconf
   annotations:
