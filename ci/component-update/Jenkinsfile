@@ -1,0 +1,124 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def DOCKER_IMAGE_TAG
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
+
+pipeline {
+    options {
+        timeout(time: 1, unit: 'HOURS')
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "${agentLabel}"
+        }
+    }
+
+    parameters {
+        string (name: 'COMPONENT_TO_BUILD',
+                        defaultValue: 'NONE',
+                        description: 'The component to build from source',
+                        trim: true)
+        string (name: 'RELEASE_BRANCH',
+                        defaultValue: 'NONE',
+                        description: 'The release branch of the component',
+                        trim: true)
+    }
+
+    environment {
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
+        DOCKER_REPO = 'ghcr.io'
+        DOCKER_NAMESPACE = 'verrazzano'
+        NETRC_FILE = credentials('netrc')
+
+        JOB_BASE_URL = credentials('job-base-url-pabhat')
+        JOB_CREDENTIALS = credentials('jenkins-credential-pabhat')
+        CLEAN_RELEASE_NAME = "${params.RELEASE_BRANCH.replace("/", "%2F")}"
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+
+                script {
+                   def scmInfo = checkout scm
+                   env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                   env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
+
+                script {
+                    try {
+                    sh """
+                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                    """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        }
+                    }
+                }
+                sh """
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                """
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                }
+            }
+        }
+
+        stage('Trigger Component Builds') {
+            stages {
+                stage('Build Component') {
+                    steps {
+                        script {
+                            jobToRun = env.JOB_BASE_URL + "/job/" + params.COMPONENT_TO_BUILD + "/job/" + params.COMPONENT_TO_BUILD + "/job/" + env.CLEAN_RELEASE_NAME
+                            withCredentials([usernameColonPassword(credentialsId: 'jenkins-credential-pabhat', variable: 'JENKINS-CREDENTIAL')]) {
+                                build job: "jobToRun",
+                                    parameters: [
+                                        string(name: 'PLATFORM_FILTER', "ol8")
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: "**/logs/**", allowEmptyArchive: true
+        }
+    }
+}
+
