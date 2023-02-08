@@ -103,9 +103,9 @@ pipeline {
                         script {
                             jobToRun = env.JOB_BASE_URL + "/job/" + params.COMPONENT_TO_BUILD + "/job/" + params.COMPONENT_TO_BUILD + "/job/" + env.CLEAN_RELEASE_NAME
                             withCredentials([usernameColonPassword(credentialsId: 'jenkins-credential-pabhat', variable: 'JENKINS-CREDENTIAL')]) {
-                                build job: "jobToRun",
+                                build job: "${jobToRun}",
                                     parameters: [
-                                        string(name: 'PLATFORM_FILTER', "ol8")
+                                        string(name: 'PLATFORM_FILTER', value: 'ol8')
                                     ], wait: true
                             }
                         }
