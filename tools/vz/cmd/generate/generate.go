@@ -28,9 +28,8 @@ vz generate --list
 var templates embed.FS
 
 const (
-	templatesDir        = "templates"
-	yamlExtension       = ".yaml"
-	defaultTemplateFile = "verrazzano-template.yaml"
+	templatesDir  = "templates"
+	yamlExtension = ".yaml"
 
 	listArg     = "list"
 	templateArg = "template"
@@ -79,7 +78,8 @@ func generateTemplate(helper helpers.VZHelper, t string, o string) error {
 	}
 
 	if len(o) < 1 {
-		o = defaultTemplateFile
+		fmt.Fprintf(helper.GetOutputStream(), string(b))
+		return nil
 	}
 	if err := os.WriteFile(o, b, 600); err != nil {
 		fmt.Fprintf(helper.GetOutputStream(), "Failed to generate template: %s", t)
