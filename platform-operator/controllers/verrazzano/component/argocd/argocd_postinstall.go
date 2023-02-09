@@ -138,7 +138,7 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 		},
 	}
 
-	var policyString = `g, verrazzano-admins, role:admin`
+	var policyString = `g, verrazzano-monitors, role:admin`
 	var err error
 
 	// Disable the built-in admin user. Grant admin (role:admin) to verrazzano-admins group
