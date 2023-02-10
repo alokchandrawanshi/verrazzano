@@ -147,10 +147,10 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	// Create the verrazzano-system realm and populate it with users, groups, clients, etc.
-	err = configureKeycloakRealms(ctx)
-	if err != nil {
-		return err
-	}
+	//err = configureKeycloakRealms(ctx)
+	//if err != nil {
+	//	return err
+	//}
 
 	// Update annotations on Keycloak Ingress
 	err = updateKeycloakIngress(ctx)
@@ -167,6 +167,9 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	return c.HelmComponent.PostInstall(ctx)
+}
+func (c KeycloakComponent) Install(ctx spi.ComponentContext) error {
+	return nil
 }
 
 // PreUpgrade - component level processing for pre-upgrade
