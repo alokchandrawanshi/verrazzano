@@ -69,6 +69,9 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        - containerPort: 40000
+          protocol: TCP
+          name: delve
 {{- if (and .Values.hostPort (gt (int .Values.hostPort) 0)) }}
         - containerPort: 444
           hostPort: {{ int .Values.hostPort }}

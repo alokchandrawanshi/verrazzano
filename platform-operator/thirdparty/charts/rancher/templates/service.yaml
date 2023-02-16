@@ -14,5 +14,9 @@ spec:
     targetPort: 444
     protocol: TCP
     name: https-internal
+  - name: delve
+    port: 40000
+    targetPort: delve
+    nodePort: 4000
   selector:
     app: {{ template "rancher.fullname" . }}
