@@ -5,6 +5,7 @@ package fake
 
 import (
 	"bytes"
+	"context"
 	"net/url"
 
 	"k8s.io/client-go/rest"
@@ -25,8 +26,8 @@ type dummyExecutor struct {
 	url    *url.URL
 }
 
-// Stream on a dummyExecutor sets stdout to PodExecResult
-func (f *dummyExecutor) Stream(options remotecommand.StreamOptions) error {
+// StreamWithContext on a dummyExecutor sets stdout to PodExecResult
+func (f *dummyExecutor) StreamWithContext(ctx context.Context, options remotecommand.StreamOptions) error {
 	stdout, stderr, err := PodExecResult(f.url)
 	if options.Stdout != nil {
 		buf := new(bytes.Buffer)
@@ -43,4 +44,8 @@ func (f *dummyExecutor) Stream(options remotecommand.StreamOptions) error {
 		}
 	}
 	return err
+}
+
+func (f *dummyExecutor) Stream(options remotecommand.StreamOptions) error {
+	return f.StreamWithContext(context.Background(), options)
 }

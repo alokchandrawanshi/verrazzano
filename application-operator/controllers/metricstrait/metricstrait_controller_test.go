@@ -55,7 +55,7 @@ type erroringUpdateClient struct {
 	client.Client
 }
 
-func (eg *erroringGetClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object) error {
+func (eg *erroringGetClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
 	return errors.NewTooManyRequests(getError, 0)
 }
 

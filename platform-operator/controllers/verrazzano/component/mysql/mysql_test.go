@@ -60,7 +60,7 @@ type erroringFakeClient struct {
 
 const tooManyRequests = "too many requests"
 
-func (e *erroringFakeClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object) error {
+func (e *erroringFakeClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
 	return errors.NewTooManyRequests(tooManyRequests, 0)
 }
 
