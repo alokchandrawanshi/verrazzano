@@ -254,6 +254,7 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 			compContext.Log().Once(msg)
 			return fmt.Errorf(msg)
 		}
+
 	}
 	if opResult == controllerutil.OperationResultCreated {
 		// We're in the initial install phase, and created the ClusterIssuer for the first time,
