@@ -1151,18 +1151,18 @@ func getCertificateSpec() certv1.CertificateSpec {
 	certSubject := certv1.X509Subject{
 		Organizations: []string{"verrazzano"},
 	}
+	issuer := getClusterIssuer()
 	certCertificate := certv1.CertificateSpec{
 		Subject:        &certSubject,
 		CommonName:     opsterCertCommonName, //decalare variable
 		Duration:       getHoursDuration(2160),
 		RenewBefore:    getHoursDuration(360),
 		DNSNames:       opsterAdminDNSNames,
-		SecretName:     opsterClientCertificateName,
+		SecretName:     opsterAdminCertificateName,
 		SecretTemplate: nil,
 		IssuerRef: certmetav1.ObjectReference{
-			Name:  verrazzanoClusterIssuerName,
-			Kind:  "ClusterIssuer",
-			Group: "cert-manager.io",
+			Name: issuer.Name,
+			Kind: issuer.Kind,
 		},
 		IsCA:   false,
 		Usages: []certv1.KeyUsage{UsageServerAuth, UsageClientAuth},
@@ -1201,4 +1201,16 @@ func getHoursDuration(hours int) *metav1.Duration {
 	ti := metav1.Duration{}
 	ti.Duration = time.Duration(hours) * time.Hour
 	return &ti
+}
+
+func getClusterIssuer() *certv1.ClusterIssuer {
+	return &certv1.ClusterIssuer{ObjectMeta: metav1.ObjectMeta{Name: verrazzanoClusterIssuerName}}
+}
+func getClusterIssuer1(compContext spi.ComponentContext, clusterIssuer certv1.ClusterIssuer) error {
+	client := compContext.Client()
+	err := client.Get(context.TODO(), types.NamespacedName{Name: verrazzanoClusterIssuerName}, &clusterIssuer)
+	if err != nil {
+		return err
+	}
+	return nil
 }
