@@ -262,6 +262,12 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 		compContext.Log().Oncef("Initial install, skipping certificate renewal checks")
 		return nil
 	}
+	if _, err = createOrUpdateCertResources(compContext); err != nil {
+		msg := fmt.Sprintf("Failed creating Custom CA resources: %v", err)
+		compContext.Log().Once(msg)
+		return fmt.Errorf(msg)
+	}
+
 	// CertManager configuration was updated, cleanup any old resources from previous configuration
 	// and renew certificates against the new ClusterIssuer
 	if err := cleanupUnusedResources(compContext, isCAValue); err != nil {
