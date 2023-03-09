@@ -436,11 +436,6 @@ pipeline {
                         runGinkgoAdmin('update/fluentdextes')
                     }
                 }
-                stage('verify-argocd') {
-                    steps {
-                        runGinkgo('multicluster/verify-argocd', '${TEST_DUMP_ROOT}/verify-argocd')
-                    }
-                }
                 stage("verify-dns-update") {
                     steps {
                         script {
@@ -473,6 +468,11 @@ pipeline {
                 stage ('mc verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
+                    }
+                }
+                stage('verify-argocd') {
+                    steps {
+                        runGinkgo('multicluster/verify-argocd', '${TEST_DUMP_ROOT}/verify-argocd')
                     }
                 }
             }
