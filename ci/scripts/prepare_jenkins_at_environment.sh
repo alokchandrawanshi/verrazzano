@@ -168,7 +168,7 @@ echo "Installing Verrazzano on Kind"
 #  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 cd ${GO_REPO_PATH}/verrazzano
 VPO_IMAGE=$(cat ${WORKSPACE}/downloaded-bom-localrepo.json | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
-helm upgrade --install myv8o platform-operator/helm_config/verrazzano-platform-operator \
+helm upgrade --install myv8o ${GO_REPO_PATH}/verrazzano/platform-operator/helm_config/charts/verrazzano-platform-operator \
     --set global.imagePullSecrets[0]=${IMAGE_PULL_SECRET} \
     --set image=${DOCKER_REPO}/ghcr.io/${VPO_IMAGE} --set global.registry=${DOCKER_REPO} \
     --set global.repository=${DOCKER_REPO}/ghcr.io
@@ -178,7 +178,6 @@ helm upgrade --install myv8o platform-operator/helm_config/verrazzano-platform-o
 
 # Create docker secret for platform operator image
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
-
 
 # optionally create a cluster dump snapshot for verifying uninstalls
 if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
