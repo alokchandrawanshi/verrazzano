@@ -101,35 +101,39 @@ oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OC
 tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
 
 # Create the verrazzano-install namespace
-kubectl create namespace verrazzano-install
+# TONYHACK-disable start
+
+#kubectl create namespace verrazzano-install
 
 # if enabled, deploy the Grafana MySQL instance and create the Grafana DB secret
-if [ $USE_DB_FOR_GRAFANA == true ]; then
+#if [ $USE_DB_FOR_GRAFANA == true ]; then
   # create the necessary secrets
-  MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
-  MYSQL_PASSWORD=$(openssl rand -base64 12)
-  ROOT_SECRET=$(echo -n $MYSQL_ROOT_PASSWORD | base64)
-  USER_SECRET=$(echo -n $MYSQL_PASSWORD | base64)
-  USER=$(echo -n "grafana" | base64)
+#  MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
+#  MYSQL_PASSWORD=$(openssl rand -base64 12)
+#  ROOT_SECRET=$(echo -n $MYSQL_ROOT_PASSWORD | base64)
+#  USER_SECRET=$(echo -n $MYSQL_PASSWORD | base64)
+#  USER=$(echo -n "grafana" | base64)
 
-  kubectl apply -f - <<-EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: grafana-db
-  namespace: verrazzano-install
-type: Opaque
-data:
-  root-password: $ROOT_SECRET
-  username: $USER
-  password: $USER_SECRET
-EOF
+#  kubectl apply -f - <<-EOF
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: grafana-db
+#  namespace: verrazzano-install
+#type: Opaque
+#data:
+#  root-password: $ROOT_SECRET
+#  username: $USER
+#  password: $USER_SECRET
+#EOF
   # deploy MySQL instance
-  kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
-fi
+#  kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
+#fi
 
 # create secret in verrazzano-install ns
-./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+#./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+# TONHYHACK-disable end
 
 # optionally create a cluster dump snapshot for verifying uninstalls
 if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
