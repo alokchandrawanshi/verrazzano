@@ -176,7 +176,7 @@ VPO_IMAGE=$(cat ${WORKSPACE}/downloaded-bom-localrepo.json | jq -r '.components[
 helm upgrade --install myv8o ${GO_REPO_PATH}/verrazzano/platform-operator/helm_config/charts/verrazzano-platform-operator \
     --set global.imagePullSecrets[0]=${IMAGE_PULL_SECRET} \
     --set image=${DOCKER_REPO}/ghcr.io/${VPO_IMAGE} --set global.registry=${DOCKER_REPO} \
-    --set global.repository=${DOCKER_REPO}/ghcr.io
+    --set global.repository=ghcr.io
 
 # make sure ns exists
 ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
