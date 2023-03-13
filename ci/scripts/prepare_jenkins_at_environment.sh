@@ -171,8 +171,6 @@ echo "Installing Verrazzano on Kind"
 #  cd $WORKSPACE
 #  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 
-./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}"
-./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 cd ${GO_REPO_PATH}/verrazzano
 VPO_IMAGE=$(cat ${WORKSPACE}/downloaded-bom-localrepo.json | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
 helm upgrade --install myv8o ${GO_REPO_PATH}/verrazzano/platform-operator/helm_config/charts/verrazzano-platform-operator \
@@ -184,7 +182,7 @@ helm upgrade --install myv8o ${GO_REPO_PATH}/verrazzano/platform-operator/helm_c
 ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
 # Create docker secret for platform operator image
-./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
+./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" verrazzano-install
 
 # optionally create a cluster dump snapshot for verifying uninstalls
 if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
