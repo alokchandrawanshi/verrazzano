@@ -134,6 +134,8 @@ docker-build-common:
 	@echo using verrazzano-cluster-operator image ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../THIRD_PARTY_LICENSES.txt .
+	# copy poll_webhook script
+	cp ../tools/scripts/poll_webhook.sh ./scripts/.
 	docker build --pull -f Dockerfile \
 		--build-arg VERRAZZANO_APPLICATION_OPERATOR_IMAGE="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .

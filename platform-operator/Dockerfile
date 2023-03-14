@@ -13,8 +13,7 @@ COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-plat
 
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
-    && chmod +x scripts/*.sh \
-    && chmod +x /root/go/src/github.com/verrazzano/tools/scripts/poll_webhook.sh
+    && chmod +x scripts/*.sh
 
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:8-slim AS final
@@ -41,7 +40,7 @@ WORKDIR /verrazzano
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/thirdparty ./platform-operator/thirdparty
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/manifests ./platform-operator/manifests
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/wait4webhook.sh ./platform-operator/scripts/wait4webhook.sh
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/tools/scripts/poll_webhook.sh ./platform-operator/scripts/poll_webhook.sh
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/platform-operator/scripts/poll_webhook.sh ./platform-operator/scripts/poll_webhook.sh
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/hooks ./platform-operator/scripts/hooks
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/install ./platform-operator/scripts/install
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/run.sh .
