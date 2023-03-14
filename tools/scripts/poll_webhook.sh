@@ -4,9 +4,10 @@
 SECONDS=0
 MAX_SECONDS=30
 while [ $SECONDS -lt $MAX_SECONDS ]; do
-    http_code=$(curl --insecure -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json $1')
+    http_code=$(curl --insecure -s -o /tmp/out -w '%{http_code}' -H 'Content-Type: application/json $1')
     echo "$1 returned HTTP $http_code."
     if [[ "$http_code" != "200" ]]; then
+        cat /tmp/out
         echo "waiting"
         sleep 5
     else
