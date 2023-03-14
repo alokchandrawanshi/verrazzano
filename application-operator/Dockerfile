@@ -10,7 +10,8 @@ COPY . .
 COPY out/linux_amd64/verrazzano-application-operator /usr/local/bin/verrazzano-application-operator
 
 RUN chmod 500 /usr/local/bin/verrazzano-application-operator \
-    && chmod 500 /root/go/src/github.com/verrazzano/application-operator/scripts/wait4webhook.sh
+    && chmod 500 /root/go/src/github.com/verrazzano/application-operator/scripts/wait4webhook.sh \
+        && chmod 500 /root/go/src/github.com/verrazzano/tools/scripts/poll_webhook.sh
 
 # Create the verrazzano-application-operator image
 FROM ghcr.io/oracle/oraclelinux:8-slim AS final
@@ -25,6 +26,7 @@ RUN microdnf update -y \
 
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/application-operator/scripts/wait4webhook.sh /usr/local/bin/wait4webhook.sh
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/tools/scripts/poll_webhook.sh /usr/local/bin/poll_webhook.sh
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-application-operator /usr/local/bin/verrazzano-application-operator
 
 COPY --from=build_base /root/go/src/github.com/verrazzano/application-operator/THIRD_PARTY_LICENSES.txt /licenses/
