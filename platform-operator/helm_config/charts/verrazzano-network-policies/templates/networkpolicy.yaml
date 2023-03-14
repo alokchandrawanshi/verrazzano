@@ -38,6 +38,13 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: fluent
+      ports:
+        - protocol: TCP
+          port: 8775
 {{- if .Values.jaegerOperator.enabled }}
     - from:
         - namespaceSelector:
