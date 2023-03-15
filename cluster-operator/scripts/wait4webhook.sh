@@ -6,4 +6,4 @@ SCRIPT_DIR=$(
     cd $(dirname "$0")
     pwd -P
 )
-${SCRIPT_DIR}/poll_webhook.sh "https://verrazzano-cluster-operator-webhook.verrazzano-system.svc.cluster.local:443/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"
+${SCRIPT_DIR}/poll_webhook.sh "https://verrazzano-cluster-operator-webhook:443/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"

@@ -3,12 +3,13 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 SECONDS=0
 MAX_SECONDS=120
+webhook_url="$1"
 while [ $SECONDS -lt $MAX_SECONDS ]; do
-    http_code=$(curl --insecure -s -o /tmp/out -w '%{http_code}' -H 'Content-Type: application/json $1')
+    http_code=$(curl --insecure -s -o /tmp/out -w '%{http_code}' -H 'Content-Type: application/json $webhook_url')
     echo "$1 returned HTTP $http_code."
     if [[ "$http_code" != "200" ]]; then
         cat /tmp/out
-        curl --insecure -v -H 'Content-Type: application/json' $1
+        curl --insecure -v -H 'Content-Type: application/json' $webhook_url
         echo "waiting for 5 seconds"
         sleep 5
     else
