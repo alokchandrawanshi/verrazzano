@@ -17,7 +17,7 @@ variable "tenancy_name" {
 }
 
 variable "operating_system_version" {
-  default     = "8"
+  default = "8"
 }
 
 variable "kubernetes_version" {
@@ -39,7 +39,7 @@ variable "ssh_private_key_path" {
   default = ""
 }
 variable "node_pools" {
-  default = {"np1" = {shape="VM.Standard2.4",node_pool_size=4,boot_volume_size=50}}
+  default = { "np1" = { shape = "VM.Standard2.4", node_pool_size = 4, boot_volume_size = 50 } }
 }
 variable "allow_node_port_access" {
   default = false
@@ -53,3 +53,4 @@ variable "operator_enabled" {
 variable "node_pool_image_id" {}
 variable "calico_enabled" {}
 variable "calico_version" {}
+variable "kubeproxy_mode" {}
