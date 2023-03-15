@@ -74,3 +74,61 @@ kubeRbacProxy:
   image: 
     repository: "gcr.io/kubebuilder/kube-rbac-proxy"
     tag: "v0.8.0"
+
+OpensearchSpec:
+  name: opster-os
+  security:
+    config:
+    tls:
+       http:
+         generate: true
+       transport:
+         generate: true
+         perNode: true
+  general:
+    httpPort: 9200
+    serviceName: vz
+    version: 2.3.0
+    drainDataNodes: true
+    image: iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest
+  dashboards:
+    image: iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest
+    tls:
+      enable: true
+      generate: true
+    version: 2.3.0
+    enable: true
+    replicas: 1
+    resources:
+      requests:
+         memory: "512Mi"
+         cpu: "200m"
+      limits:
+         memory: "512Mi"
+         cpu: "200m"
+  nodePools:
+    - component: masters
+      replicas: 3
+      diskSize: "50Gi"
+      resources:
+        requests:
+          memory: "1.4Gi"
+      roles:
+        - "cluster_manager"
+    - component: data
+      replicas: 3
+      diskSize: "50Gi"
+      resources:
+        requests:
+          memory: "4.8Gi"
+      roles:
+        - "data"
+    - component: ingest
+      replicas: 1
+      resources:
+        requests:
+          memory: "2.5Gi"
+      roles:
+        - "ingest"
+      persistence:
+        emptyDir: { }

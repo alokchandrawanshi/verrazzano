@@ -1,0 +1,256 @@
+{{- $cluster_name := .Values.OpensearchSpec.name }}
+apiVersion: opensearch.opster.io/v1
+kind: OpenSearchCluster
+metadata:
+  name: {{ $cluster_name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+{{- if .Values.OpensearchSpec.initHelper }}
+  initHelper:
+{{- if .Values.OpensearchSpec.initHelper.version }}
+    version: {{ .Values.OpensearchSpec.initHelper.version }}
+{{ end }}
+{{- if .Values.OpensearchSpec.initHelper.image }}
+    image: {{ .Values.OpensearchSpec.initHelper.image }}
+{{- end }}
+{{- if .Values.OpensearchSpec.initHelper.imagePullPolicy }}
+    imagePullPolicy: {{ .Values.OpensearchSpec.initHelper.imagePullPolicy }}
+{{- end }}
+{{- if .Values.OpensearchSpec.initHelper.imagePullSecrets }}
+    imagePullSecrets:
+{{ toYaml .Values.OpensearchSpec.initHelper.imagePullSecrets | indent 6 }}
+{{- end }}
+{{- end }}
+  general:
+    version: {{ .Values.OpensearchSpec.general.version }}
+{{- if .Values.OpensearchSpec.general.image }}
+    image: {{ .Values.OpensearchSpec.general.image }}
+{{- end }}
+    httpPort: {{ .Values.OpensearchSpec.general.httpPort }}
+    vendor: opensearch
+    serviceName: {{ .Values.OpensearchSpec.name }}
+{{- if .Values.OpensearchSpec.general.pluginsList }}
+    pluginsList:
+{{ toYaml .Values.OpensearchSpec.general.pluginsList | indent 6 }}
+{{- end }}
+{{- if .Values.OpensearchSpec.general.keystore }}
+    keystore:
+{{ toYaml .Values.OpensearchSpec.general.keystore | indent 6 }}
+{{- end }}
+{{- if .Values.OpensearchSpec.general.additionalVolumes }}
+    additionalVolumes:
+  {{- range $key, $val := .Values.OpensearchSpec.general.additionalVolumes }}
+      - name: {{ $val.name }}
+        path: {{ $val.path }}
+        secret:
+          secretName: {{ $val.secret.secretName }}
+  {{- end -}}
+{{- end }}
+{{- if .Values.OpensearchSpec.general.additionalConfig }}
+    additionalConfig:
+{{ toYaml .Values.OpensearchSpec.general.additionalConfig | indent 6 }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards }}
+  dashboards:
+{{- if .Values.OpensearchSpec.dashboards.image }}
+    image: {{ .Values.OpensearchSpec.dashboards.image }}
+{{- end }}
+    version: {{ .Values.OpensearchSpec.dashboards.version }}
+    enable: {{ .Values.OpensearchSpec.dashboards.enable }}
+    replicas: {{ .Values.OpensearchSpec.dashboards.replicas }}
+{{- if .Values.OpensearchSpec.dashboards.pluginsList }}
+    pluginsList:
+{{ toYaml .Values.OpensearchSpec.dashboards.pluginsList | indent 6 }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.basePath }}
+    basePath: {{ .Values.OpensearchSpec.dashboards.basePath }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.labels }}
+    labels: # Add any extra labels as key-value pairs here
+{{ toYaml .Values.OpensearchSpec.dashboards.labels | indent 6 }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.annotations }}
+    annotations: # Add any extra annotations as key-value pairs here
+{{ toYaml .Values.OpensearchSpec.dashboards.annotations | indent 6 }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.opensearchCredentialsSecret }}
+    opensearchCredentialsSecret:
+      name: {{ .Values.OpensearchSpec.dashboards.opensearchCredentialsSecret.name }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.env }}
+    env:
+{{- toYaml .Values.OpensearchSpec.dashboards.env | nindent 8 }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.resources }}
+    resources:
+{{- if .Values.OpensearchSpec.dashboards.resources.requests }}
+      requests:
+{{- if .Values.OpensearchSpec.dashboards.resources.requests.memory }}
+        memory: {{ .Values.OpensearchSpec.dashboards.resources.requests.memory }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.resources.requests.cpu }}
+        cpu: {{ .Values.OpensearchSpec.dashboards.resources.requests.cpu }}
+{{- end }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.resources.limits }}
+      limits:
+{{- if .Values.OpensearchSpec.dashboards.resources.limits.memory }}
+        memory: {{ .Values.OpensearchSpec.dashboards.resources.limits.memory }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.resources.limits.cpu }}
+        cpu: {{ .Values.OpensearchSpec.dashboards.resources.limits.cpu }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.tls }}
+    tls:
+{{- if .Values.OpensearchSpec.dashboards.tls.enable }}
+      enable: {{ .Values.OpensearchSpec.dashboards.tls.enable  }}  # Configure TLS
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.tls.generate }}
+      generate: {{ .Values.OpensearchSpec.dashboards.tls.generate }}  # Have the Operator generate and sign a certificate
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.tls.secret }}
+      secret:
+        name: {{ .Values.OpensearchSpec.dashboards.tls.secret.name }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.tls.casecret }}
+      caSecret:
+        name: {{ .Values.OpensearchSpec.dashboards.tls.caSecret.name }}
+{{- end }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.additionalVolumes }}
+    additionalVolumes:
+    {{- range $key,$val := .Values.OpensearchSpec.dashboards.additionalVolumes }}
+    - name: {{ $val.name }}
+      path: {{ $val.path }}
+      secret:
+        secretName: {{ $val.secretName.name }}
+    {{- end }}
+{{- end }}
+{{- if .Values.OpensearchSpec.dashboards.additionalConfig }}
+    additionalConfig:
+{{ toYaml .Values.OpensearchSpec.dashboards.additionalConfig | indent 6 }}
+{{- end }}
+{{- end }}
+  confMgmt:
+    smartScaler: true
+  nodePools:
+  {{- range $key,$val := .Values.OpensearchSpec.nodePools }}
+    - component: {{ $val.component }}
+      replicas: {{ $val.replicas }}
+      diskSize: {{ $val.diskSize | quote }}
+{{- if $val.NodeSelector }}
+      nodeSelector:
+{{- toYaml $val.NodeSelector | nindent 8 }}
+{{- end }}
+{{- if  $val.labels }}
+      labels: # Add any extra labels as key-value pairs here
+{{ toYaml  $val.labels | indent 8 }}
+{{- end }}
+{{- if  $val.annotations }}
+      annotations: # Add any extra annotations as key-value pairs here
+{{ toYaml  $val.annotations | indent 8 }}
+{{- end }}
+{{- if  $val.priorityClassName }}
+      priorityClassName: {{  $val.priorityClassName }}
+{{- end }}
+{{- if $val.env }}
+      env:
+{{- toYaml $val.env | nindent 6 }}
+{{- end }}
+{{- if  $val.resources }}
+      resources:
+{{- if  $val.resources.requests }}
+        requests:
+{{- if  $val.resources.requests.memory }}
+          memory: {{  $val.resources.requests.memory }}
+{{- end}}
+{{- if  $val.resources.requests.cpu }}
+          cpu: {{ $val.resources.requests.cpu }}
+{{- end}}
+{{- end }}
+{{- if  $val.resources.limits }}
+        limits:
+{{- if  $val.resources.limits.memory }}
+          memory: {{ $val.resources.limits.memory }}
+{{- end}}
+{{- if  $val.resources.limits.cpu }}
+          cpu: {{ $val.resources.limits.cpu }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if  $val.roles }}
+      roles:
+{{ toYaml $val.roles | indent 6 }}
+{{ end }}
+{{- if $val.persistence }}
+      persistence:
+{{- if  $val.persistence.hostPath }}
+        hostPath:
+          path: {{  $val.persistence.hostPath.path }}
+{{- else if  $val.persistence.pvc }}
+        pvc:
+{{- if  $val.persistence.pvc.storageClass }}
+          storageClass: {{  $val.persistence.pvc.storageClass }}
+{{- end }}
+{{- if  $val.persistence.pvc.accessModes }}
+          accessModes:
+{{  toYaml $val.persistence.pvc.accessModes | indent 10 }}
+{{- end }}
+{{- else if  $val.persistence.emptyDir }}
+        emptyDir: {{  $val.persistence.pvc.emptyDir }}
+{{- end }}
+{{- end }}
+{{- if $val.additionalConfig }}
+      additionalConfig:
+{{ toYaml $val.additionalConfig | indent 6 }}
+{{- end }}
+{{ end }}
+{{- if .Values.OpensearchSpec.security }}
+  security:
+{{- if .Values.OpensearchSpec.security.config }}
+    config:
+{{- if .Values.OpensearchSpec.security.config.adminSecret }}
+      adminSecret:
+        name: {{ .Values.OpensearchSpec.security.config.adminSecret.name }}
+{{- end }}
+{{- if .Values.OpensearchSpec.security.config.adminCredentialsSecret }}
+      adminCredentialsSecret:
+        name: {{ .Values.OpensearchSpec.security.config.adminCredentialsSecret.name }}
+{{- end }}
+{{- if .Values.OpensearchSpec.security.config.securityConfigSecret }}
+      securityConfigSecret:
+        name: {{ .Values.OpensearchSpec.security.config.securityConfigSecret.name }}
+{{- end }}
+{{- end }}
+{{- if .Values.OpensearchSpec.security.tls }}
+    tls:
+{{- if .Values.OpensearchSpec.security.tls.transport }}
+      transport:
+{{- if .Values.OpensearchSpec.security.tls.http.generate }}
+        generate: {{ .Values.OpensearchSpec.security.tls.transport.generate }}
+{{- end }}
+{{- if .Values.OpensearchSpec.security.tls.transport.secret }}
+        secret:
+          name: {{ .Values.OpensearchSpec.security.tls.transport.secret.name }}
+{{- end }}
+{{- if .Values.OpensearchSpec.security.tls.transport.adminDn }}
+        adminDn: {{ .Values.OpensearchSpec.security.tls.transport.adminDn  }}
+{{- end }}
+{{- if .Values.OpensearchSpec.security.tls.transport.nodesDn }}
+        nodesDn: {{ .Values.OpensearchSpec.security.tls.transport.nodesDn  }}
+{{- end }}
+{{- end }}
+{{- if .Values.OpensearchSpec.security.tls.http }}
+      http:
+{{- if .Values.OpensearchSpec.security.tls.http.generate }}
+        generate: {{ .Values.OpensearchSpec.security.tls.http.generate }}
+{{- end }}
+{{- if .Values.OpensearchSpec.security.tls.http.secret }}
+        secret:
+          name: {{ .Values.OpensearchSpec.security.tls.http.secret.name }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
