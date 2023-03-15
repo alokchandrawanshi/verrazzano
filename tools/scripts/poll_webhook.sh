@@ -8,7 +8,8 @@ while [ $SECONDS -lt $MAX_SECONDS ]; do
     echo "$1 returned HTTP $http_code."
     if [[ "$http_code" != "200" ]]; then
         cat /tmp/out
-        echo "waiting"
+        curl --insecure -v -H 'Content-Type: application/json' $1
+        echo "waiting for 5 seconds"
         sleep 5
     else
         exit 0
