@@ -80,8 +80,8 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
       echo "Using operator.yaml from object storage"
       oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/operator-cacherepo.yaml --file ${WORKSPACE}/downloaded-operator.yaml
       cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
-      echo "Using generated-verrazzano-bom-localrepo.json from object storage"
-      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/generated-verrazzano-bom-localrepo.json --file ${WORKSPACE}/downloaded-bom-localrepo.json
+      echo "Using generated-verrazzano-bom-cacherepo.json from object storage"
+      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/generated-verrazzano-bom-cacherepo.json --file ${WORKSPACE}/downloaded-bom-cacherepo.json
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
       env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${TARGET_OPERATOR_FILE}
@@ -172,7 +172,7 @@ echo "Installing Verrazzano on Kind"
 #  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 
 cd ${GO_REPO_PATH}/verrazzano
-VPO_IMAGE=$(cat ${WORKSPACE}/downloaded-bom-localrepo.json | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
+VPO_IMAGE=$(cat ${WORKSPACE}/downloaded-bom-cacherepo.json | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
 helm upgrade --install myv8o ${GO_REPO_PATH}/verrazzano/platform-operator/helm_config/charts/verrazzano-platform-operator \
     --set global.imagePullSecrets[0]=${IMAGE_PULL_SECRET} \
     --set image=${DOCKER_REPO}/ghcr.io/${VPO_IMAGE} --set global.registry=${DOCKER_REPO} \
