@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -20,6 +20,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -1349,7 +1350,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 	}
 
 	// Get the combine set of value overrides into a single array of string
-	overrides, err := common.GetInstallOverridesYAML(ctx, keycloakComp.ValueOverrides)
+	overrides, err := override.GetInstallOverridesYAML(ctx, keycloakComp.ValueOverrides)
 	if err != nil {
 		return err
 	}
@@ -1362,7 +1363,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 			found = true
 
 			// Convert the affinity override from yaml to a struct
-			affinityField, err := common.ExtractValueFromOverrideString(overrideYaml, "affinity")
+			affinityField, err := override.ExtractValueFromOverrideString(overrideYaml, "affinity")
 			if err != nil {
 				return err
 			}
