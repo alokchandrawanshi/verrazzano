@@ -19,6 +19,8 @@ const (
 	Dev ProfileType = "dev"
 	// Prod identifies the production install profile
 	Prod ProfileType = "prod"
+	// None identifies a profile with all components disabled
+	None ProfileType = "none"
 	// ManagedCluster identifies the production managed-cluster install profile
 	ManagedCluster ProfileType = "managed-cluster"
 )
@@ -137,6 +139,9 @@ type InstanceInfo struct {
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 	// The Rancher URL for this Verrazzano installation.
 	RancherURL *string `json:"rancherUrl,omitempty"`
+	// The Thanos Query URL for this Verrazzano installation.
+	// The Thanos Query ingress gets forwarded to the Thanos Query Frontend service.
+	ThanosQueryURL *string `json:"thanosQueryUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of a Verrazzano resource.
@@ -918,7 +923,7 @@ type FluentdComponent struct {
 	// +optional
 	OpenSearchSecret string `json:"opensearchSecret,omitempty"`
 	// The target OpenSearch URLs.
-	// Specify this option in this <a href="https://docs.fluentd.org/output/elasticsearch#hosts-optional">format</a>.
+	// Specify this option in this <a href="https://docs.fluentd.org/output/opensearch#hosts-optional">format</a>.
 	// The default `http://vmi-system-es-ingest-oidc:8775` is the VMI OpenSearch URL.
 	// +optional
 	OpenSearchURL string `json:"opensearchURL,omitempty"`
