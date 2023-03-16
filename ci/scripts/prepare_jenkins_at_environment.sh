@@ -78,7 +78,7 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage"
-      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/operator-localrepo.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/operator-cacherepo.yaml --file ${WORKSPACE}/downloaded-operator.yaml
       cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
       echo "Using generated-verrazzano-bom-localrepo.json from object storage"
       oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/generated-verrazzano-bom-localrepo.json --file ${WORKSPACE}/downloaded-bom-localrepo.json

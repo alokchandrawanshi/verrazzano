@@ -107,6 +107,7 @@ pipeline {
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_OS_REGION="us-phoenix-1"
 
+        CACHE_REPO = credentials('cache-repo')
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
 
@@ -596,16 +597,16 @@ def generateOperatorYaml(dockerImageTag) {
 def saveGeneratedFiles() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
-        sed 's;ghcr.io;r.repo.v8o.io/ghcr.io;g' $WORKSPACE/generated-operator.yaml > $WORKSPACE/generated-operator-localrepo.yaml
-        sed 's;ghcr.io;r.repo.v8o.io/ghcr.io;g' $WORKSPACE/generated-verrazzano-bom.json > $WORKSPACE/generated-verrazzano-bom-localrepo.json
+        sed "s;ghcr.io;${CACHE_REPO}/ghcr.io;g" $WORKSPACE/generated-operator.yaml > $WORKSPACE/generated-operator-cacherepo.yaml
+        sed "s;ghcr.io;${CACHE_REPO}/ghcr.io;g" $WORKSPACE/generated-verrazzano-bom.json > $WORKSPACE/generated-verrazzano-bom-cacherepo.json
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator-localrepo.yaml --file $WORKSPACE/generated-operator-localrepo.yaml
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator-cacherepo.yaml --file $WORKSPACE/generated-operator-cacherepo.yaml
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator-localrepo.yaml --file $WORKSPACE/generated-operator-localrepo.yaml
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator-cacherepo.yaml --file $WORKSPACE/generated-operator-cacherepo.yaml
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom-localrepo.json --file $WORKSPACE/generated-verrazzano-bom-localrepo.json
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom-cacherepo.json --file $WORKSPACE/generated-verrazzano-bom-cacherepo.json
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom-localrepo.json --file $WORKSPACE/generated-verrazzano-bom-localrepo.json
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom-cacherepo.json --file $WORKSPACE/generated-verrazzano-bom-cacherepo.json
     """
 }
 
