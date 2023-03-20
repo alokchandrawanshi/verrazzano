@@ -41,6 +41,7 @@ func NewComponent() spi.Component {
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:            ComponentNamespace,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "opensearch-operator-values.yaml"),
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -48,6 +49,9 @@ func NewComponent() spi.Component {
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: getDeploymentList(),
 			},
+			IngressNames:            getIngressList(),
+			GetInstallOverridesFunc: GetOverrides,
+			//AppendOverridesFunc:     AppendOverrides,
 		},
 	}
 }
@@ -83,6 +87,11 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 		return log.ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 
+	err := createSecurityconfigSecret(ctx)
+	if err != nil {
+		return err
+	}
+
 	return o.HelmComponent.PreInstall(ctx)
 }
 
@@ -92,4 +101,22 @@ func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
 		return err
 	}
 	return nil
+}
+
+func (o opensearchOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
+	if err := createSecurityconfigSecret(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c opensearchOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.OpenSearchOperator != nil {
+		if ctx.EffectiveCR().Spec.Components.OpenSearchOperator.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.OpenSearchOperator.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

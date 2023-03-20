@@ -302,3 +302,34 @@ spec:
       enabled: true
     argoCD:
       enabled: false
+    opensearchOperator:
+      enabled: false
+      overrides:
+        - values:
+            OpensearchSpec:
+              nodePools:
+                - component: masters
+                  replicas: 3
+                  diskSize: "50Gi"
+                  resources:
+                    requests:
+                      memory: "1.4Gi"
+                  roles:
+                    - "cluster_manager"
+                - component: data
+                  replicas: 3
+                  diskSize: "50Gi"
+                  resources:
+                    requests:
+                      memory: "4.8Gi"
+                  roles:
+                    - "data"
+                - component: ingest
+                  replicas: 1
+                  resources:
+                    requests:
+                      memory: "2.5Gi"
+                  roles:
+                    - "ingest"
+                  persistence:
+                    emptyDir: { }

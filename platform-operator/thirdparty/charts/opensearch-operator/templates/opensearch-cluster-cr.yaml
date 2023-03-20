@@ -5,13 +5,20 @@ metadata:
   name: {{ $cluster_name }}
   namespace: {{ .Release.Namespace }}
 spec:
+{{- if .Values.OpensearchSpec.bootstrap }}
+  bootstrap:
+{{- if .Values.OpensearchSpec.bootstrap.additionalConfig }}
+    additionalConfig:
+{{ toYaml .Values.OpensearchSpec.bootstrap.additionalConfig | indent 6 }}
+{{- end }}
+{{- end }}
 {{- if .Values.OpensearchSpec.initHelper }}
   initHelper:
 {{- if .Values.OpensearchSpec.initHelper.version }}
     version: {{ .Values.OpensearchSpec.initHelper.version }}
 {{ end }}
 {{- if .Values.OpensearchSpec.initHelper.image }}
-    image: {{ .Values.OpensearchSpec.initHelper.image }}
+    image: {{ .Values.OpensearchSpec.initHelper.image | quote }}
 {{- end }}
 {{- if .Values.OpensearchSpec.initHelper.imagePullPolicy }}
     imagePullPolicy: {{ .Values.OpensearchSpec.initHelper.imagePullPolicy }}
@@ -24,7 +31,7 @@ spec:
   general:
     version: {{ .Values.OpensearchSpec.general.version }}
 {{- if .Values.OpensearchSpec.general.image }}
-    image: {{ .Values.OpensearchSpec.general.image }}
+    image: {{ .Values.OpensearchSpec.general.image | quote }}
 {{- end }}
     httpPort: {{ .Values.OpensearchSpec.general.httpPort }}
     vendor: opensearch
@@ -53,7 +60,7 @@ spec:
 {{- if .Values.OpensearchSpec.dashboards }}
   dashboards:
 {{- if .Values.OpensearchSpec.dashboards.image }}
-    image: {{ .Values.OpensearchSpec.dashboards.image }}
+    image: {{ .Values.OpensearchSpec.dashboards.image | quote }}
 {{- end }}
     version: {{ .Values.OpensearchSpec.dashboards.version }}
     enable: {{ .Values.OpensearchSpec.dashboards.enable }}
@@ -157,7 +164,7 @@ spec:
 {{- end }}
 {{- if $val.env }}
       env:
-{{- toYaml $val.env | nindent 6 }}
+{{- toYaml $val.env | nindent 8 }}
 {{- end }}
 {{- if  $val.resources }}
       resources:
@@ -182,7 +189,7 @@ spec:
 {{- end }}
 {{- if  $val.roles }}
       roles:
-{{ toYaml $val.roles | indent 6 }}
+{{ toYaml $val.roles | indent 8 }}
 {{ end }}
 {{- if $val.persistence }}
       persistence:
@@ -204,7 +211,7 @@ spec:
 {{- end }}
 {{- if $val.additionalConfig }}
       additionalConfig:
-{{ toYaml $val.additionalConfig | indent 6 }}
+{{ toYaml $val.additionalConfig | indent 8 }}
 {{- end }}
 {{ end }}
 {{- if .Values.OpensearchSpec.security }}
