@@ -298,14 +298,22 @@ spec:
     name: {{ .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigsSecret.name }}
     key: {{ .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigsSecret.key }}
 {{- end }}
+{{- $thanosAlreadyExists := false }}
+{{- $defaultThanosSidecar := dict "name" "thanos-sidecar" "securityContext" (dict "privileged" false) }}
 {{- if .Values.prometheus.prometheusSpec.containers }}
   containers:
-{{ toYaml .Values.prometheus.prometheusSpec.containers | indent 4 }}
-{{- if and (.Values.prometheus.prometheusSpec.thanos) (eq .Values.prometheus.thanos.integration "sidecar") }}
-    - name: thanos-sidecar
-      securityContext:
-        privileged: false
+# if user has provided additional configuration for the thanos-sidecar container, merge it with the default config
+{{- range $ctr := .Values.prometheus.prometheusSpec.containers }}
+{{- if eq $ctr.name "thanos-sidecar" }}
+{{- $thanosAlreadyExists = true }}
+{{ merge $ctr $defaultThanosSidecar | toYaml | indent 4 | trim | printf "  - %s"  }}
+{{- else }}
+{{ toYaml $ctr | indent 4 | trim | printf "  - %s" }}
 {{- end }}
+{{- end }}
+{{- end }}
+{{- if  and (not $thanosAlreadyExists) (.Values.prometheus.prometheusSpec.thanos) (eq .Values.prometheus.thanos.integration "sidecar") }}
+{{ toYaml $defaultThanosSidecar | indent 4 | trim | printf "  - %s" }}
 {{- end }}
 {{- if .Values.prometheus.prometheusSpec.initContainers }}
   initContainers:
