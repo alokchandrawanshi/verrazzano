@@ -302,11 +302,12 @@ spec:
 {{- $defaultThanosSidecar := dict "name" "thanos-sidecar" "securityContext" (dict "privileged" false) }}
 {{- if .Values.prometheus.prometheusSpec.containers }}
   containers:
-# if user has provided additional configuration for the thanos-sidecar container, merge it with the default config
+# if the user has provided additional configuration for the thanos-sidecar container, merge it with the default config
+# The default config should take precedence in the merge
 {{- range $ctr := .Values.prometheus.prometheusSpec.containers }}
 {{- if eq $ctr.name "thanos-sidecar" }}
 {{- $thanosAlreadyExists = true }}
-{{ merge $ctr $defaultThanosSidecar | toYaml | indent 4 | trim | printf "  - %s"  }}
+{{ merge $defaultThanosSidecar $ctr | toYaml | indent 4 | trim | printf "  - %s"  }}
 {{- else }}
 {{ toYaml $ctr | indent 4 | trim | printf "  - %s" }}
 {{- end }}
