@@ -4,13 +4,15 @@
 package operatorinit
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	apidev "github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/apidev"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	vzmodule "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/module"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
@@ -87,6 +89,18 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		DryRun: config.DryRun,
 	}).SetupWithManager(mgr); err != nil {
 		return errors.Wrap(err, "Failed to setup controller for Verrazzano Stacks")
+	}
+
+	// Setup VZModule configmap reconciler
+	if err = (&apidev.ConfigMapReconciler{
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		DelegateReconciler:      vzmodule.NewConfigMapReconcilerDelegate(mgr.GetClient()),
+		NumConcurrentReconciles: 10,
+		Name:                    "VerrazzanoModuleController",
+		DryRun:                  config.DryRun,
+	}).SetupWithManager(mgr); err != nil {
+		return errors.Wrap(err, "Failed to setup ConfigMap controller for Verrazzano module delegate")
 	}
 
 	// +kubebuilder:scaffold:builder
