@@ -10,8 +10,7 @@ COPY . .
 COPY out/linux_amd64/verrazzano-cluster-operator /usr/local/bin/verrazzano-cluster-operator
 
 RUN chmod 500 /usr/local/bin/verrazzano-cluster-operator \
-    && chmod 500 /root/go/src/github.com/verrazzano/cluster-operator/scripts/wait4webhook.sh \
-        && chmod 500 /root/go/src/github.com/verrazzano/cluster-operator/scripts/poll_webhook.sh
+    && chmod 500 /root/go/src/github.com/verrazzano/cluster-operator/scripts/wait4webhook.sh
 
 # Create the verrazzano-cluster-operator image
 FROM ghcr.io/oracle/oraclelinux:8-slim AS final
@@ -27,7 +26,6 @@ RUN microdnf update -y \
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-cluster-operator /usr/local/bin/verrazzano-cluster-operator
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/cluster-operator/scripts/wait4webhook.sh /usr/local/bin/wait4webhook.sh
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/cluster-operator/scripts/poll_webhook.sh /usr/local/bin/poll_webhook.sh
 
 COPY --from=build_base /root/go/src/github.com/verrazzano/cluster-operator/THIRD_PARTY_LICENSES.txt /licenses/
 

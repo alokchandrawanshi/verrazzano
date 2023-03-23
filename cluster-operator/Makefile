@@ -134,8 +134,6 @@ docker-build-debug: go-build-linux-debug docker-build-common
 docker-build-common:
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../THIRD_PARTY_LICENSES.txt .
-	# copy poll_webhook script
-	cp ../tools/scripts/poll_webhook.sh ./scripts/.
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 

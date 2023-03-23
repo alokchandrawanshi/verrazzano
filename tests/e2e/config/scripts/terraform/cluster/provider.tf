@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 variable "region" {}
@@ -8,11 +8,12 @@ variable "api_fingerprint" {}
 variable "api_private_key_path" {}
 
 provider "oci" {
-  tenancy_ocid     = var.tenancy_id
-  user_ocid        = var.user_id
-  fingerprint      = var.api_fingerprint
-  private_key_path = var.api_private_key_path
-  region           = var.region
+  version              = "4.75.0"
+  tenancy_ocid         = var.tenancy_id
+  user_ocid            = var.user_id
+  fingerprint          = var.api_fingerprint
+  private_key_path     = var.api_private_key_path
+  region               = var.region
 }
 
 terraform {
