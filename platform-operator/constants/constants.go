@@ -95,8 +95,8 @@ const PrometheusIngress = "vmi-system-prometheus"
 // ThanosSidecarIngress is the name of the ingress for the Thanos sidecar
 const ThanosSidecarIngress = "thanos-sidecar"
 
-// ThanosQueryFrontendIngress is the name of the ingress for the Thanos Query Frontend
-const ThanosQueryFrontendIngress = "thanos-query-frontend"
+// ThanosQueryIngress is the name of the ingress for the Thanos Query
+const ThanosQueryIngress = "thanos-query"
 
 // GlobalImagePullSecName is the name of the global image pull secret
 const GlobalImagePullSecName = "verrazzano-container-registry"
@@ -151,6 +151,9 @@ const VerrazzanoVersion1_4_0 = "1.4.0"
 
 // VerrazzanoVersion1_5_0 is the Verrazzano version string for 1.5.0
 const VerrazzanoVersion1_5_0 = "1.5.0"
+
+// VerrazzanoVersion1_6_0 is the Verrazzano version string for 1.6.0
+const VerrazzanoVersion1_6_0 = "1.6.0"
 
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
