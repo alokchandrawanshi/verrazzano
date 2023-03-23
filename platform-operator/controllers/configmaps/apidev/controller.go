@@ -5,14 +5,13 @@ package components
 
 import (
 	"context"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/yaml"
 	"strconv"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	cfgmapcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/common"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,16 +19,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/yaml"
 )
 
-const (
-	ConfigmapControllerAnnotation = "experimental.verrazzano.io/configmap-controller"
-	ConfigmapAPIVersionAnnotation = "experimental.verrazzano.io/configmap-apiVersion"
-	ConfigmapKindAnnotation       = "experimental.verrazzano.io/configmap-kind"
-	ConfigmapGroupAnnotation      = "experimental.verrazzano.io/configmap-group"
-)
-
+// ConfigMapDelegateReconciler Defines the contract for under-development controllers to allow them to act as delegate
+// reconcilers for this configmap controller.  This scaffolding is temporary to allow proving out API and controller
+// implementations before the APIs have been fully defined and approved.
 type ConfigMapDelegateReconciler interface {
 	// NewObject Returns a new instance of the object a reconciler manages
 	NewObject() interface{}
@@ -37,10 +34,27 @@ type ConfigMapDelegateReconciler interface {
 	Matches(group string, version string, kind string) bool
 	// DoReconcile reconciles the delegate object
 	DoReconcile(log vzlog.VerrazzanoLogger, object interface{}) (ctrl.Result, error)
+	// DoDelete invokes the delegate to do any delete processing
 	DoDelete(log vzlog.VerrazzanoLogger, object interface{}) (ctrl.Result, error)
+	// FinalizerName returns the unique finalizer to use for this delegate reconciler
 	FinalizerName() string
 }
 
+// ConfigMapReconciler Implements a controller that allows developers to use configmaps to test out new APIs and
+// controller implementations while those APIs are under development.  New types can be wrapped in a ConfigMap in the
+// "object" entry of the data map as an embedded YAML structure for the type, where the GVK for the type is defined
+// in labels on the ConfigMap.
+//
+// The controller will match a configmap to the DelegateReconciler by the GVK labels, and if a match is found a
+// finalizer provided by the delegate will be attached to the ConfigMap.  The target  object is unmarshaled into a new
+// instance of the target object and passed to the DelegateReconciler for reconciling via the DoReconcile() call.
+//
+//	When the reconciling is completed the ConfigMap object is updated with any changes that are done inside the delegate
+//
+// reconcile.
+//
+// When the configmap is deleted, DoDelete() is invoked on the Delegate reconciler; if no requeue or error are returned
+// the ConfigMap finalizer will be removed and the object will be deleted.
 type ConfigMapReconciler struct {
 	client.Client
 	Name                    string
@@ -79,7 +93,7 @@ func (r *ConfigMapReconciler) createPredicate() predicate.Predicate {
 }
 
 func (r *ConfigMapReconciler) isConfigmapControllerResource(cm *v1.ConfigMap) bool {
-	cmController, found := cm.Annotations[ConfigmapControllerAnnotation]
+	cmController, found := cm.Labels[cfgmapcommon.ConfigmapControllerLabel]
 	if !found {
 		return false
 	}
@@ -101,13 +115,13 @@ func (r *ConfigMapReconciler) objectMatches(o client.Object) bool {
 	// Check Delegate GVK
 	var group, version, kind string
 	var found bool
-	if group, found = configMap.Annotations[ConfigmapGroupAnnotation]; !found {
+	if group, found = configMap.Labels[cfgmapcommon.ConfigmapGroupLabel]; !found {
 		return false
 	}
-	if version, found = configMap.Annotations[ConfigmapAPIVersionAnnotation]; !found {
+	if version, found = configMap.Labels[cfgmapcommon.ConfigmapAPIVersionLabel]; !found {
 		return false
 	}
-	if kind, found = configMap.Annotations[ConfigmapKindAnnotation]; !found {
+	if kind, found = configMap.Labels[cfgmapcommon.ConfigmapKindLabel]; !found {
 		return false
 	}
 
@@ -154,7 +168,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	objectToReconcile := r.DelegateReconciler.NewObject()
 
-	objDataYAML, objDataFound := cm.Data["object"]
+	objDataYAML, objDataFound := cm.Data[cfgmapcommon.ConfigMapObjectField]
 	if !objDataFound {
 		return vzctrl.NewRequeueWithDelay(5, 15, time.Second), log.ErrorfThrottledNewErr("No object data found for configmap %s/%s", cm.Namespace, cm.Name)
 	}
@@ -195,7 +209,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	cm.Data["object"] = string(bytes)
+	cm.Data[cfgmapcommon.ConfigMapObjectField] = string(bytes)
 
 	// Write any updates to the ConfigMap
 	if err := r.Client.Update(context.TODO(), &cm); err != nil {
