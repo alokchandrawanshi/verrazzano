@@ -8,10 +8,7 @@ Component version updates:
 
 Fixes:
 
-- 
-Fixes:
-
-- 
+- Fixed the startupapicheck pod in cert-manager startup job to pull image from ghcr.io. 
 
 ### v1.5.0
 Features:
