@@ -103,10 +103,30 @@ func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func (o opensearchOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
-	if err := createSecurityconfigSecret(ctx); err != nil {
+//func (o opensearchOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
+//	if err := createSecurityconfigSecret(ctx); err != nil {
+//		return err
+//	}
+//	return nil
+//}
+
+func (o opensearchOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
+	//if err := checkServiceExists(ctx, opsterOSService); err != nil {
+	//	return err
+	//}
+
+	if err := createIngress(ctx, opsterOSIngressName); err != nil {
 		return err
 	}
+
+	//if err := checkServiceExists(ctx, opsterOSDService); err != nil {
+	//	return err
+	//}
+
+	if err := createIngress(ctx, opsterOSDIngressName); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -7,15 +7,22 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
 )
 
@@ -24,7 +31,12 @@ const (
 
 	opsterOSDIngressName = "opster-osd"
 
-	opsterOSIngressName      = "opster-os"
+	opsterOSIngressName = "opster-os"
+
+	opsterOSService = "opensearch"
+
+	opsterOSDService = "opensearch-dashboards"
+
 	securityconfigSecretName = "securityconfig-secret"
 )
 
@@ -285,16 +297,16 @@ stringData:
       config_version: "2"
     config:
       dynamic:
-        kibana:
-          multitenancy_enabled: false
-          server_username: kibanaserver
-        do_not_fail_on_forbidden: true
-        http:
-          anonymous_auth_enabled: true
-          xff:
-            enabled: true
-            internalProxies: '.*' # trust all internal proxies, regex pattern. need to put auth proxy ip in future, it should have the ip addresses of auth proxy services
-            remoteIpHeader: 'x-forwarded-for'
+        //kibana:
+        //  multitenancy_enabled: false
+        //  server_username: kibanaserver
+        //do_not_fail_on_forbidden: true
+        //http:
+        //  anonymous_auth_enabled: true //
+        //  xff:
+        //    enabled: true
+        //    internalProxies: '.*' # trust all internal proxies, regex pattern. need to put auth proxy ip in future, it should have the ip addresses of auth proxy services
+        //    remoteIpHeader: 'x-forwarded-for'
         authc:
           proxy_auth_domain:
             description: "Authenticate via proxy"
@@ -345,6 +357,95 @@ func createSecurityconfigSecret(ctx spi.ComponentContext) error {
 			return log.ErrorfNewErr("Failed to create %s for opensearch cluster: %v", securityconfigSecret, err)
 		}
 		return nil
+	}
+
+	return err
+}
+
+func createIngress(ctx spi.ComponentContext, ingressName string) error {
+	ingress := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: ingressName, Namespace: ComponentNamespace},
+	}
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
+		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed building DNS domain name: %v", err)
+		}
+		hostName := buildHostNameForDomain(ingressName, dnsSubDomain)
+		ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
+		pathType := netv1.PathTypeImplementationSpecific
+		ingRule := netv1.IngressRule{
+			Host: hostName,
+			IngressRuleValue: netv1.IngressRuleValue{
+				HTTP: &netv1.HTTPIngressRuleValue{
+					Paths: []netv1.HTTPIngressPath{
+						{
+							Path:     "/()(.*)",
+							PathType: &pathType,
+							Backend: netv1.IngressBackend{
+								Service: &netv1.IngressServiceBackend{
+									Name: constants.VerrazzanoAuthProxyServiceName,
+									Port: netv1.ServiceBackendPort{
+										Number: constants.VerrazzanoAuthProxyServicePort,
+									},
+								},
+								Resource: nil,
+							},
+						},
+					},
+				},
+			},
+		}
+		//ingress.Spec.TLS = []netv1.IngressTLS{
+		//	{
+		//		Hosts:      []string{argoCDHostName},
+		//		SecretName: "tls-argocd-ingress",
+		//	},
+		//}
+		ingress.Spec.Rules = []netv1.IngressRule{ingRule}
+		ingress.Spec.IngressClassName = &ingressClassName
+		if ingress.Annotations == nil {
+			ingress.Annotations = map[string]string{}
+		}
+		ingress.Annotations["kubernetes.io/tls-acme"] = "true"
+		ingress.Annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = "6M"
+		ingress.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2"
+		ingress.Annotations["nginx.ingress.kubernetes.io/secure-backends"] = "false"
+		ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTPS"
+		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
+		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
+		ingress.Annotations["cert-manager.io/common-name"] = hostName
+		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
+			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
+			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
+		}
+		return nil
+	})
+	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+		return ctx.Log().ErrorfNewErr("Failed create/update %s ingress: %v", ingressName, err)
+	}
+	return err
+}
+
+func buildHostNameForDomain(ingressName string, domain string) string {
+	if ingressName == opsterOSIngressName {
+		return fmt.Sprintf("opensearch.logging.%s", domain)
+	} else if ingressName == opsterOSDIngressName {
+		return fmt.Sprintf("osd.logging.%s", domain)
+	}
+	return ""
+}
+
+func checkServiceExists(ctx spi.ComponentContext, svcName string) error {
+	service := &v1.Service{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      svcName,
+	}, service)
+
+	if err != nil && errors.IsNotFound(err) {
+		return fmt.Errorf("%s is waiting for %s service to exist", ComponentName, svcName)
 	}
 
 	return err

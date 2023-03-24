@@ -135,6 +135,7 @@ data:
   
     local usernameFromToken = auth.usernameFromIdToken(token)
     auth.audit("User "..usernameFromToken.." authenticated and authorized")
+    local userRolesFromToken = auth.getRoles(token)
 
     if backend == 'verrazzano' then
         local args = ngx.req.get_uri_args()
@@ -151,6 +152,7 @@ data:
         end
         -- set the oidc_user
         ngx.var.oidc_user = usernameFromToken
+        ngx.var.oidc_user_roles = userRolesFromToken
         auth.debug("Authorized: oidc_user is "..ngx.var.oidc_user)
     end
 
@@ -179,6 +181,14 @@ data:
     local oidcProviderInClusterUri = nil
     local oidcIssuerUri = nil
     local oidcIssuerUriLocal = nil
+
+    function me.getRoles(idToken)
+        local id_token = jwt:load_jwt(idToken)
+        if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
+            return table.concat(id_token.payload.realm_access.roles,",")
+        end
+        return ""
+    end
 
     function me.config(opts)
         for key, val in pairs(opts) do
@@ -523,13 +533,13 @@ data:
         elseif backend == 'thanos-query' then
             serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-query-frontend', '9090')
         elseif backend == 'kibana' then
-            serverUrl = me.makeVmiBackendUrl('osd', '5601')
+            serverUrl = 'https://opensearch-dashboards.verrazzano-logging.svc.cluster.local:5601'
         elseif backend == 'osd' then
-            serverUrl = me.makeVmiBackendUrl('osd', '5601')    
+            serverUrl = 'https://opensearch-dashboards.verrazzano-logging.svc.cluster.local:5601'
         elseif backend == 'elasticsearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')
+              serverUrl = 'https://opensearch.verrazzano-logging.svc.cluster.local:9200'
         elseif backend == 'opensearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')    
+            serverUrl = 'https://opensearch.verrazzano-logging.svc.cluster.local:9200'
         elseif backend == 'kiali' then
             serverUrl = me.makeVmiBackendUrl(backend, '20001')
         elseif backend == 'jaeger' then
@@ -842,14 +852,15 @@ data:
     function me.isAuthorized(idToken)
         me.debug("Checking for required role '"..requiredRole.."'")
         local id_token = jwt:load_jwt(idToken)
-        if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
-            for _, role in ipairs(id_token.payload.realm_access.roles) do
-                if role == requiredRole then
-                    return true
-                end
-            end
+        local userRoles = me.getRoles(idToken)
+        me.debug("Roles available for users '"..userRoles.."'")
+        if userRoles:match(requiredRole) then
+            me.debug ("Required role '"..requiredRole.."' found")
+            return true
+        else
+            me.debug ("Required role '"..requiredRole.."' not found")
+            return false
         end
-        return false
     end
 
     function me.usernameFromIdToken(idToken)
@@ -1343,9 +1354,12 @@ data:
                 # oauth-proxy ssl certs location: lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
 
                 set $oidc_user "";
+                set $oidc_user_roles "";
                 set $backend_server_url "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
                 proxy_set_header X-WEBAUTH-USER $oidc_user;
+                proxy_set_header x-proxy-roles $oidc_user_roles;
+                proxy_set_header x-forwarded-for $proxy_add_x_forwarded_for;
                 proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
             }

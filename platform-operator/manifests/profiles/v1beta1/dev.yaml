@@ -16,7 +16,7 @@ spec:
     opensearchOperator:
       overrides:
         - values:
-            OpensearchSpec:
+            OpenSearchClusterSpec:
               bootstrap:
                 additionalConfig:
                   cluster.initial_master_nodes: opensearch-masters-0

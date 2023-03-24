@@ -75,7 +75,7 @@ kubeRbacProxy:
     repository: "gcr.io/kubebuilder/kube-rbac-proxy"
     tag: "v0.8.0"
 
-OpensearchSpec:
+OpenSearchClusterSpec:
   name: opster-os
   security:
     config:
