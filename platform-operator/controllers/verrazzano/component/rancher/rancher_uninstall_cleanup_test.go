@@ -7,14 +7,13 @@ import (
 	"context"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,7 +29,7 @@ var (
 			Name:      common.RancherName,
 		},
 	}
-	daemonset = &appsv1.DaemonSet{
+	daemonSet = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: common.CattleSystem,
 			Name:      common.RancherName,
@@ -38,58 +37,33 @@ var (
 	}
 )
 
-func Test_deleteAll(t *testing.T) {
-	type args struct {
-		group     string
-		version   string
-		resource  string
-		namespace string
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{
-			name: "delete deployments",
-			args: args{
-				group:     "apps",
-				version:   "v1",
-				resource:  "deployments",
-				namespace: ComponentNamespace,
-			},
-		},
-		{
-			name: "delete daemonsets",
-			args: args{
-				group:     "apps",
-				version:   "v1",
-				resource:  "daemonsets",
-				namespace: ComponentNamespace,
-			},
-		},
-	}
+// Test_cleanupPreventRecreate - test the Test_cleanupPreventRecreate function
+func Test_cleanupPreventRecreate(t *testing.T) {
+	// Create fake client and context
 	client := fake.NewClientBuilder().WithScheme(getSchemeForCleanup()).Build()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
-	// create a fake dynamic client to serve the Setting and ClusterRepo resources
+	// Create a fake dynamic client
 	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getSchemeForCleanup(), newClusterCleanupRepoResources()...)
 
-	// override the getDynamicClientFunc for unit testing and reset it when done
+	// Override the dynamic client for unit testing and reset it when done
 	prevGetDynamicClientFunc := getDynamicClientForCleanupFunc
 	getDynamicClientForCleanupFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
 	defer func() {
 		getDynamicClientForCleanupFunc = prevGetDynamicClientFunc
 	}()
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deleteAll(ctx, tt.args.group, tt.args.version, tt.args.resource, tt.args.namespace)
-			gvr := schema.GroupVersionResource{Group: tt.args.group, Version: tt.args.version, Resource: tt.args.resource}
-			list, err := fakeDynamicClient.Resource(gvr).Namespace(tt.args.namespace).List(context.TODO(), metav1.ListOptions{})
-			assert.NoError(t, err)
-			assert.Equal(t, 0, len(list.Items))
-		})
-	}
+	// Call the function being tested
+	cleanupPreventRecreate(ctx)
+
+	// Verify the results
+	list, err := fakeDynamicClient.Resource(schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}).Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(list.Items))
+
+	list, err = fakeDynamicClient.Resource(schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}).Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(list.Items))
 }
 
 func getSchemeForCleanup() *runtime.Scheme {
@@ -101,5 +75,5 @@ func getSchemeForCleanup() *runtime.Scheme {
 }
 
 func newClusterCleanupRepoResources() []runtime.Object {
-	return []runtime.Object{deployment, daemonset}
+	return []runtime.Object{deployment, daemonSet}
 }
