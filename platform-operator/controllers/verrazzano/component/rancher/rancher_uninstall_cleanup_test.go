@@ -7,13 +7,14 @@ import (
 	"context"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,10 +25,12 @@ import (
 
 var (
 	deployment = &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: common.CattleSystem,
+			Name:      common.RancherName,
 		},
+	}
+	daemonset = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: common.CattleSystem,
 			Name:      common.RancherName,
@@ -47,16 +50,25 @@ func Test_deleteAll(t *testing.T) {
 		args args
 	}{
 		{
-			name: "foo",
+			name: "delete deployments",
 			args: args{
 				group:     "apps",
 				version:   "v1",
-				resource:  "Deployment",
+				resource:  "deployments",
+				namespace: ComponentNamespace,
+			},
+		},
+		{
+			name: "delete daemonsets",
+			args: args{
+				group:     "apps",
+				version:   "v1",
+				resource:  "daemonsets",
 				namespace: ComponentNamespace,
 			},
 		},
 	}
-	client := fake.NewClientBuilder().WithScheme(getSchemeForCleanup()).WithObjects(deployment).Build()
+	client := fake.NewClientBuilder().WithScheme(getSchemeForCleanup()).Build()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	// create a fake dynamic client to serve the Setting and ClusterRepo resources
@@ -75,7 +87,7 @@ func Test_deleteAll(t *testing.T) {
 			gvr := schema.GroupVersionResource{Group: tt.args.group, Version: tt.args.version, Resource: tt.args.resource}
 			list, err := fakeDynamicClient.Resource(gvr).Namespace(tt.args.namespace).List(context.TODO(), metav1.ListOptions{})
 			assert.NoError(t, err)
-			assert.Equal(t, 0, len((list.Items)))
+			assert.Equal(t, 0, len(list.Items))
 		})
 	}
 }
@@ -89,5 +101,5 @@ func getSchemeForCleanup() *runtime.Scheme {
 }
 
 func newClusterCleanupRepoResources() []runtime.Object {
-	return []runtime.Object{deployment}
+	return []runtime.Object{deployment, daemonset}
 }

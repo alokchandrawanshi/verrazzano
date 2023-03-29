@@ -6,6 +6,8 @@ package rancher
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/client-go/dynamic"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -27,8 +29,8 @@ var getDynamicClientForCleanupFunc getDynamicClientFuncSig = getDynamicClientFor
 //	kcd "-n kube-system configmap cattle-controllers"
 func cleanupPreventRecreate(ctx spi.ComponentContext) {
 	// Delete rancher install to not have anything running that (re)creates resources
-	deleteAll(ctx, "apps", "v1", "Deployment", ComponentNamespace)
-	deleteAll(ctx, "apps", "v1", "DaemonSet", ComponentNamespace)
+	deleteAll(ctx, "apps", "v1", "deployments", ComponentNamespace)
+	deleteAll(ctx, "apps", "v1", "daemonsets", ComponentNamespace)
 }
 
 func deleteAll(ctx spi.ComponentContext, group string, version string, resource string, namespace string) {
@@ -51,13 +53,8 @@ func deleteAll(ctx spi.ComponentContext, group string, version string, resource 
 
 	// Delete each of the items returned
 	for _, item := range list.Items {
-		resourceId = schema.GroupVersionResource{
-			Group:    item.GroupVersionKind().Group,
-			Version:  item.GroupVersionKind().Version,
-			Resource: item.GroupVersionKind().Kind,
-		}
 		err = dynClient.Resource(resourceId).Namespace(item.GetNamespace()).Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			ctx.Log().Errorf("Component %s failed to delete %s %s/%s: %v", resourceId.Resource, item.GetNamespace(), item.GetName(), err)
 		}
 	}
