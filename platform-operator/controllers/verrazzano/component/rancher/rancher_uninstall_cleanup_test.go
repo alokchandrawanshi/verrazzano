@@ -4,13 +4,13 @@
 package rancher
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	admv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -35,9 +35,14 @@ var (
 			Name:      common.RancherName,
 		},
 	}
+	mutatingWebhookConfiguration = &admv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "rancher.cattle.io",
+		},
+	}
 )
 
-// Test_cleanupPreventRecreate - test the Test_cleanupPreventRecreate function
+// Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
 func Test_cleanupPreventRecreate(t *testing.T) {
 	// Create fake client and context
 	client := fake.NewClientBuilder().WithScheme(getSchemeForCleanup()).Build()
@@ -54,14 +59,14 @@ func Test_cleanupPreventRecreate(t *testing.T) {
 	}()
 
 	// Call the function being tested
-	cleanupPreventRecreate(ctx)
+	cleanupRancher(ctx)
 
 	// Verify the results
-	list, err := fakeDynamicClient.Resource(schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}).Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
+	list, err := listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, ComponentNamespace)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(list.Items))
 
-	list, err = fakeDynamicClient.Resource(schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}).Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
+	list, err = listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(list.Items))
 }
@@ -69,11 +74,12 @@ func Test_cleanupPreventRecreate(t *testing.T) {
 func getSchemeForCleanup() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = appsv1.AddToScheme(scheme)
+	_ = admv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
 	return scheme
 }
 
 func newClusterCleanupRepoResources() []runtime.Object {
-	return []runtime.Object{deployment, daemonSet}
+	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration}
 }
