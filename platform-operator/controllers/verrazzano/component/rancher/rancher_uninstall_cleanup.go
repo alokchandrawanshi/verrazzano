@@ -6,11 +6,17 @@ package rancher
 import (
 	"context"
 
+	"k8s.io/client-go/dynamic"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+// getDynamicClientForCleanupFunc is the function for getting a k8s dynamic client - this allows us to override
+// the function for unit testing
+var getDynamicClientForCleanupFunc getDynamicClientFuncSig = getDynamicClientForCleanup
 
 // cleanupPreventRecreate - Implement the following portion of rancher-cleanup in golang
 //
@@ -26,7 +32,7 @@ func cleanupPreventRecreate(ctx spi.ComponentContext) {
 }
 
 func deleteAll(ctx spi.ComponentContext, group string, version string, resource string, namespace string) {
-	dynClient, err := k8sutil.GetDynamicClient()
+	dynClient, err := getDynamicClientForCleanupFunc()
 	if err != nil {
 		ctx.Log().Errorf("Component %s failed to get dynamic client: %v", ComponentName, err)
 		return
@@ -55,4 +61,12 @@ func deleteAll(ctx spi.ComponentContext, group string, version string, resource 
 			ctx.Log().Errorf("Component %s failed to delete %s %s/%s: %v", resourceId.Resource, item.GetNamespace(), item.GetName(), err)
 		}
 	}
+}
+
+func getDynamicClientForCleanup() (dynamic.Interface, error) {
+	dynClient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		return nil, err
+	}
+	return dynClient, nil
 }
