@@ -40,6 +40,11 @@ var (
 			Name: "rancher.cattle.io",
 		},
 	}
+	validatingwebhookconfiguration = &admv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "rancher.cattle.io",
+		},
+	}
 )
 
 // Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
@@ -69,6 +74,18 @@ func Test_cleanupPreventRecreate(t *testing.T) {
 	list, err = listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(list.Items))
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"})
+	assert.NoError(t, err)
+	for _, item := range list.Items {
+		assert.NotContains(t, item.GetName(), cattleNameFilter)
+	}
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"})
+	assert.NoError(t, err)
+	for _, item := range list.Items {
+		assert.NotContains(t, item.GetName(), cattleNameFilter)
+	}
 }
 
 func getSchemeForCleanup() *runtime.Scheme {
@@ -81,5 +98,5 @@ func getSchemeForCleanup() *runtime.Scheme {
 }
 
 func newClusterCleanupRepoResources() []runtime.Object {
-	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration}
+	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingwebhookconfiguration}
 }

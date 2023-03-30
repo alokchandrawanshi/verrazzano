@@ -7,15 +7,16 @@ import (
 	"context"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
+
+var cattleNameFilter = "cattle.io"
 
 // getDynamicClientForCleanupFunc is the function for getting a k8s dynamic client - this allows us to override
 // the function for unit testing
@@ -54,8 +55,8 @@ func cleanupPreventRecreate(ctx spi.ComponentContext) {
 //
 // fi
 func cleanupBlockingWebhooks(ctx spi.ComponentContext) {
-	resourceId := schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}
-	deleteResources(ctx, resourceId, ComponentNamespace, "cattle.io")
+	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", cattleNameFilter)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", cattleNameFilter)
 }
 
 // deleteResources - Delete all instances of a resource in the given namespace
