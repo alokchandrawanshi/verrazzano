@@ -4,6 +4,7 @@
 package rancher
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,12 +38,22 @@ var (
 	}
 	mutatingWebhookConfiguration = &admv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "rancher.cattle.io",
+			Name: fmt.Sprintf("rancher.%s", cattleNameFilter),
 		},
 	}
-	validatingwebhookconfiguration = &admv1.ValidatingWebhookConfiguration{
+	validatingWebhookConfiguration = &admv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "rancher.cattle.io",
+			Name: fmt.Sprintf("rancher.%s", cattleNameFilter),
+		},
+	}
+	mutatingWebhookConfiguration2 = &admv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("test-%s", webhookMonitorFilter),
+		},
+	}
+	validatingWebhookConfiguration2 = &admv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("test-%s", webhookMonitorFilter),
 		},
 	}
 )
@@ -79,12 +90,14 @@ func Test_cleanupPreventRecreate(t *testing.T) {
 	assert.NoError(t, err)
 	for _, item := range list.Items {
 		assert.NotContains(t, item.GetName(), cattleNameFilter)
+		assert.NotContains(t, item.GetName(), webhookMonitorFilter)
 	}
 
 	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"})
 	assert.NoError(t, err)
 	for _, item := range list.Items {
 		assert.NotContains(t, item.GetName(), cattleNameFilter)
+		assert.NotContains(t, item.GetName(), webhookMonitorFilter)
 	}
 }
 
@@ -98,5 +111,5 @@ func getSchemeForCleanup() *runtime.Scheme {
 }
 
 func newClusterCleanupRepoResources() []runtime.Object {
-	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingwebhookconfiguration}
+	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration, mutatingWebhookConfiguration2, validatingWebhookConfiguration2}
 }

@@ -17,6 +17,7 @@ import (
 )
 
 var cattleNameFilter = "cattle.io"
+var webhookMonitorFilter = "rancher-monitoring"
 
 // getDynamicClientForCleanupFunc is the function for getting a k8s dynamic client - this allows us to override
 // the function for unit testing
@@ -31,21 +32,22 @@ func cleanupRancher(ctx spi.ComponentContext) {
 // cleanupPreventRecreate - delete resources that would recreate resources during the cleanup
 func cleanupPreventRecreate(ctx spi.ComponentContext) {
 	// Delete rancher install to not have anything running that (re)creates resources
-	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, ComponentNamespace, "")
-	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace, "")
+	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, ComponentNamespace, []string{})
+	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace, []string{})
 }
 
 // cleanupWebhooks - Implement the "delete webhooks" portion of rancher-cleanup in golang
 func cleanupWebhooks(ctx spi.ComponentContext) {
+	nameFilter := []string{cattleNameFilter, webhookMonitorFilter}
 	// Delete any blocking webhooks from preventing requests
-	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", cattleNameFilter)
-	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", cattleNameFilter)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", nameFilter)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", nameFilter)
 
 	// Delete any monitoring webhooks
 }
 
 // deleteResources - Delete all instances of a resource in the given namespace
-func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionResource, namespace string, nameFilter string) {
+func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionResource, namespace string, nameFilter []string) {
 	dynClient, err := getClient(ctx)
 	if err != nil {
 		return
@@ -63,8 +65,14 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 
 	// Delete each of the items returned
 	for _, item := range list.Items {
-		if len(nameFilter) == 0 || strings.Contains(item.GetName(), nameFilter) {
+		if len(nameFilter) == 0 {
 			deleteResource(ctx, dynClient, resourceId, item)
+		} else {
+			for _, filter := range nameFilter {
+				if strings.Contains(item.GetName(), filter) {
+					deleteResource(ctx, dynClient, resourceId, item)
+				}
+			}
 		}
 	}
 }
