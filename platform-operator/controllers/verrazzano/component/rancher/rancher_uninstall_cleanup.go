@@ -36,7 +36,7 @@ func cleanupPreventRecreate(ctx spi.ComponentContext) {
 	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace, []string{})
 }
 
-// cleanupWebhooks - Implement the "delete webhooks" portion of rancher-cleanup in golang
+// cleanupWebhooks - Implement the portion of rancher-cleanup script that deletes webhooks
 func cleanupWebhooks(ctx spi.ComponentContext) {
 	nameFilter := []string{cattleNameFilter, webhookMonitorFilter}
 	// Delete any blocking webhooks from preventing requests
@@ -44,6 +44,12 @@ func cleanupWebhooks(ctx spi.ComponentContext) {
 	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", nameFilter)
 
 	// Delete any monitoring webhooks
+}
+
+// cleanupClusterRolesAndBindings - Implement the portion of the rancher-cleanup script
+// that deletes ClusterRoles and ClusterRoleBindings
+func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
+
 }
 
 // deleteResources - Delete all instances of a resource in the given namespace
