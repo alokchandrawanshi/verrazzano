@@ -43,17 +43,13 @@ func cleanupPreventRecreate(ctx spi.ComponentContext) {
 
 // cleanupBlockingWebhooks - Implement the following portion of rancher-cleanup in golang
 //
-// # Delete any blocking webhooks from preventing requests
-// if kubectl get mutatingwebhookconfigurations -o name | grep -q cattle\.io; then
-//
-//	kcd "$(kubectl get mutatingwebhookconfigurations -o name | grep cattle\.io)"
-//
-// fi
-// if kubectl get validatingwebhookconfigurations -o name | grep -q cattle\.io; then
-//
-//	kcd "$(kubectl get validatingwebhookconfigurations -o name | grep cattle\.io)"
-//
-// fi
+//		# Delete any blocking webhooks from preventing requests
+//		if kubectl get mutatingwebhookconfigurations -o name | grep -q cattle\.io; then
+//		  kcd "$(kubectl get mutatingwebhookconfigurations -o name | grep cattle\.io)"
+//		fi
+//	 	if kubectl get validatingwebhookconfigurations -o name | grep -q cattle\.io; then
+//	     kcd "$(kubectl get validatingwebhookconfigurations -o name | grep cattle\.io)"
+//	 	fi
 func cleanupBlockingWebhooks(ctx spi.ComponentContext) {
 	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", cattleNameFilter)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", cattleNameFilter)
