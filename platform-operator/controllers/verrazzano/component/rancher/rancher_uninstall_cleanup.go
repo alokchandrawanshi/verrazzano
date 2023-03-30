@@ -25,34 +25,23 @@ var getDynamicClientForCleanupFunc getDynamicClientFuncSig = getDynamicClientFor
 // cleanupRancher - perform the functions of the rancher-cleanup job
 func cleanupRancher(ctx spi.ComponentContext) {
 	cleanupPreventRecreate(ctx)
-	cleanupBlockingWebhooks(ctx)
+	cleanupWebhooks(ctx)
 }
 
-// cleanupPreventRecreate - Implement the following portion of rancher-cleanup in golang
-//
-//	# Delete rancher install to not have anything running that (re)creates resources
-//	kcd "-n cattle-system deploy,ds --all"
-//	kubectl -n cattle-system wait --for delete pod --selector=app=rancher
-//	# Delete the only resource not in cattle namespaces
-//	kcd "-n kube-system configmap cattle-controllers"
+// cleanupPreventRecreate - delete resources that would recreate resources during the cleanup
 func cleanupPreventRecreate(ctx spi.ComponentContext) {
 	// Delete rancher install to not have anything running that (re)creates resources
 	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, ComponentNamespace, "")
 	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace, "")
 }
 
-// cleanupBlockingWebhooks - Implement the following portion of rancher-cleanup in golang
-//
-//		# Delete any blocking webhooks from preventing requests
-//		if kubectl get mutatingwebhookconfigurations -o name | grep -q cattle\.io; then
-//		  kcd "$(kubectl get mutatingwebhookconfigurations -o name | grep cattle\.io)"
-//		fi
-//	 	if kubectl get validatingwebhookconfigurations -o name | grep -q cattle\.io; then
-//	     kcd "$(kubectl get validatingwebhookconfigurations -o name | grep cattle\.io)"
-//	 	fi
-func cleanupBlockingWebhooks(ctx spi.ComponentContext) {
+// cleanupWebhooks - Implement the "delete webhooks" portion of rancher-cleanup in golang
+func cleanupWebhooks(ctx spi.ComponentContext) {
+	// Delete any blocking webhooks from preventing requests
 	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", cattleNameFilter)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", cattleNameFilter)
+
+	// Delete any monitoring webhooks
 }
 
 // deleteResources - Delete all instances of a resource in the given namespace
