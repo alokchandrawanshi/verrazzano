@@ -25,18 +25,18 @@ var getDynamicClientForCleanupFunc getDynamicClientFuncSig = getDynamicClientFor
 
 // deleteOptions - filter settings for a delete resources request
 type deleteOptions struct {
-	Namespace        string
-	RemoveFinalizers bool
-	Labels           []string
-	NameFilter       []string
+	Namespace              string
+	RemoveCattleFinalizers bool
+	Labels                 []string
+	NameFilter             []string
 }
 
 // defaultDeleteOptions - create an instance of deleteOptions with default values
 func defaultDeleteOptions() deleteOptions {
 	return deleteOptions{
-		RemoveFinalizers: false,
-		Labels:           []string{},
-		NameFilter:       []string{},
+		RemoveCattleFinalizers: false,
+		Labels:                 []string{},
+		NameFilter:             []string{},
 	}
 }
 
@@ -64,6 +64,8 @@ func cleanupWebhooks(ctx spi.ComponentContext) {
 // cleanupClusterRolesAndBindings - Implement the portion of the rancher-cleanup script that deletes ClusterRoles and ClusterRoleBindings
 func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	options := defaultDeleteOptions()
+	options.Labels = []string{"cattle.io/creator=norman"}
+	options.RemoveCattleFinalizers = true
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
 
 	//kubectl get clusterrolebinding -l cattle.io/creator=norman --no-headers -o custom-columns=NAME:.metadata.name | while read -r CRB; do
