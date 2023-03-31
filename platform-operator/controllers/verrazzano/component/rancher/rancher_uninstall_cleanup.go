@@ -23,43 +23,66 @@ var webhookMonitorFilter = "rancher-monitoring"
 // the function for unit testing
 var getDynamicClientForCleanupFunc getDynamicClientFuncSig = getDynamicClientForCleanup
 
+// deleteOptions - filter settings for a delete resources request
+type deleteOptions struct {
+	Namespace        string
+	RemoveFinalizers bool
+	Labels           []string
+	NameFilter       []string
+}
+
+// defaultDeleteOptions - create an instance of deleteOptions with default values
+func defaultDeleteOptions() deleteOptions {
+	return deleteOptions{
+		RemoveFinalizers: false,
+		Labels:           []string{},
+		NameFilter:       []string{},
+	}
+}
+
 // cleanupRancher - perform the functions of the rancher-cleanup job
 func cleanupRancher(ctx spi.ComponentContext) {
 	cleanupPreventRecreate(ctx)
 	cleanupWebhooks(ctx)
+	cleanupClusterRolesAndBindings(ctx)
 }
 
 // cleanupPreventRecreate - delete resources that would recreate resources during the cleanup
 func cleanupPreventRecreate(ctx spi.ComponentContext) {
-	// Delete rancher install to not have anything running that (re)creates resources
-	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, ComponentNamespace, []string{})
-	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace, []string{})
+	options := defaultDeleteOptions()
+	options.Namespace = ComponentNamespace
+	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, options)
 }
 
 // cleanupWebhooks - Implement the portion of rancher-cleanup script that deletes webhooks
 func cleanupWebhooks(ctx spi.ComponentContext) {
-	nameFilter := []string{cattleNameFilter, webhookMonitorFilter}
-	// Delete any blocking webhooks from preventing requests
-	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", nameFilter)
-	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", nameFilter)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, defaultDeleteOptions())
+	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, defaultDeleteOptions())
 }
 
-// cleanupClusterRolesAndBindings - Implement the portion of the rancher-cleanup script
-// that deletes ClusterRoles and ClusterRoleBindings
+// cleanupClusterRolesAndBindings - Implement the portion of the rancher-cleanup script that deletes ClusterRoles and ClusterRoleBindings
 func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
+	options := defaultDeleteOptions()
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
+
+	//kubectl get clusterrolebinding -l cattle.io/creator=norman --no-headers -o custom-columns=NAME:.metadata.name | while read -r CRB; do
+	//kcpf clusterrolebindings "$CRB"
+	//kcd "clusterrolebindings ""$CRB"""
+	//done
 
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
-func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionResource, namespace string, nameFilter []string) {
+func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionResource, options deleteOptions) {
 	dynClient, err := getClient(ctx)
 	if err != nil {
 		return
 	}
 
 	var list *unstructured.UnstructuredList
-	if len(namespace) > 0 {
-		list, err = listResourceByNamespace(ctx, dynClient, resourceId, namespace)
+	if len(options.Namespace) > 0 {
+		list, err = listResourceByNamespace(ctx, dynClient, resourceId, options.Namespace)
 	} else {
 		list, err = listResource(ctx, dynClient, resourceId)
 	}
@@ -69,10 +92,10 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 
 	// Delete each of the items returned
 	for _, item := range list.Items {
-		if len(nameFilter) == 0 {
+		if len(options.NameFilter) == 0 {
 			deleteResource(ctx, dynClient, resourceId, item)
 		} else {
-			for _, filter := range nameFilter {
+			for _, filter := range options.NameFilter {
 				if strings.Contains(item.GetName(), filter) {
 					deleteResource(ctx, dynClient, resourceId, item)
 				}
@@ -89,7 +112,7 @@ func deleteResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resou
 	}
 }
 
-// listResource - common function to list resource without a namespace
+// listResource - common function to list resource without a Namespace
 func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource) (*unstructured.UnstructuredList, error) {
 	list, err := dynClient.Resource(resourceId).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {

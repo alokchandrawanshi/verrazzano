@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -74,30 +75,51 @@ func Test_cleanupPreventRecreate(t *testing.T) {
 		getDynamicClientForCleanupFunc = prevGetDynamicClientFunc
 	}()
 
+	// Verify expected resources exist prior to the cleanup
+	verifyResources(t, ctx, fakeDynamicClient, false)
+
 	// Call the function being tested
 	cleanupRancher(ctx)
 
-	// Verify the results
+	// Verify expected resources do not exist after  the cleanup
+	verifyResources(t, ctx, fakeDynamicClient, true)
+}
+
+// verifyResources - verify expected counts of resources before and after the rancher cleanup
+func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, cleanupDone bool) {
+	var expectedLen = 1
+	if cleanupDone {
+		expectedLen = 0
+	}
+
 	list, err := listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, ComponentNamespace)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(list.Items))
+	assert.Equal(t, expectedLen, len(list.Items))
 
 	list, err = listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(list.Items))
+	assert.Equal(t, expectedLen, len(list.Items))
 
 	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"})
 	assert.NoError(t, err)
 	for _, item := range list.Items {
-		assert.NotContains(t, item.GetName(), cattleNameFilter)
-		assert.NotContains(t, item.GetName(), webhookMonitorFilter)
+		if cleanupDone {
+			assert.NotContains(t, item.GetName(), cattleNameFilter)
+			assert.NotContains(t, item.GetName(), webhookMonitorFilter)
+		} else {
+			assert.True(t, strings.Contains(item.GetName(), cattleNameFilter) || strings.Contains(item.GetName(), webhookMonitorFilter))
+		}
 	}
 
 	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"})
 	assert.NoError(t, err)
 	for _, item := range list.Items {
-		assert.NotContains(t, item.GetName(), cattleNameFilter)
-		assert.NotContains(t, item.GetName(), webhookMonitorFilter)
+		if cleanupDone {
+			assert.NotContains(t, item.GetName(), cattleNameFilter)
+			assert.NotContains(t, item.GetName(), webhookMonitorFilter)
+		} else {
+			assert.True(t, strings.Contains(item.GetName(), cattleNameFilter) || strings.Contains(item.GetName(), webhookMonitorFilter))
+		}
 	}
 }
 
