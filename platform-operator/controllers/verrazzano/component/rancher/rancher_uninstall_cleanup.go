@@ -42,8 +42,6 @@ func cleanupWebhooks(ctx spi.ComponentContext) {
 	// Delete any blocking webhooks from preventing requests
 	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", nameFilter)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", nameFilter)
-
-	// Delete any monitoring webhooks
 }
 
 // cleanupClusterRolesAndBindings - Implement the portion of the rancher-cleanup script
@@ -52,7 +50,7 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 
 }
 
-// deleteResources - Delete all instances of a resource in the given namespace
+// deleteResources - Delete all instances of a resource that meet the filters passed
 func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionResource, namespace string, nameFilter []string) {
 	dynClient, err := getClient(ctx)
 	if err != nil {
@@ -83,6 +81,14 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 	}
 }
 
+// deleteResource - delete a single instance of a resource
+func deleteResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, item unstructured.Unstructured) {
+	err := dynClient.Resource(resourceId).Namespace(item.GetNamespace()).Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		ctx.Log().Errorf("Component %s failed to delete %s %s/%s: %v", resourceId.Resource, item.GetNamespace(), item.GetName(), err)
+	}
+}
+
 // listResource - common function to list resource without a namespace
 func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource) (*unstructured.UnstructuredList, error) {
 	list, err := dynClient.Resource(resourceId).List(context.TODO(), metav1.ListOptions{})
@@ -101,14 +107,6 @@ func listResourceByNamespace(ctx spi.ComponentContext, dynClient dynamic.Interfa
 		return nil, err
 	}
 	return list, nil
-}
-
-// deleteResource - delete a single instance of a resource
-func deleteResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, item unstructured.Unstructured) {
-	err := dynClient.Resource(resourceId).Namespace(item.GetNamespace()).Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ctx.Log().Errorf("Component %s failed to delete %s %s/%s: %v", resourceId.Resource, item.GetNamespace(), item.GetName(), err)
-	}
 }
 
 // getClient - common function to get a dynamic client and log any error that occurs
