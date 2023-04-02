@@ -59,7 +59,13 @@ var (
 	}
 	clusterRoleBinding1 = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "",
+			Name:   "clusterRoleBinding1",
+			Labels: map[string]string{"cattle.io/creator": "norman"},
+		},
+	}
+	clusterRole1 = &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "clusterRole1",
 			Labels: map[string]string{"cattle.io/creator": "norman"},
 		},
 	}
@@ -128,7 +134,11 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 		}
 	}
 
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "cattle.io/creator=norman")
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, normanSelector)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, normanSelector)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
 
@@ -145,5 +155,5 @@ func getSchemeForCleanup() *runtime.Scheme {
 
 func newClusterCleanupRepoResources() []runtime.Object {
 	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration,
-		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1}
+		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1, clusterRole1}
 }

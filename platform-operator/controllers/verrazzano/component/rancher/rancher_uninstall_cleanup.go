@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +18,7 @@ import (
 
 var cattleNameFilter = "cattle.io"
 var webhookMonitorFilter = "rancher-monitoring"
+var normanSelector = "cattle.io/creator=norman"
 
 // getDynamicClientForCleanupFunc is the function for getting a k8s dynamic client - this allows us to override
 // the function for unit testing
@@ -65,10 +65,10 @@ func cleanupWebhooks(ctx spi.ComponentContext) {
 // cleanupClusterRolesAndBindings - Implement the portion of the rancher-cleanup script that deletes ClusterRoles and ClusterRoleBindings
 func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	options := defaultDeleteOptions()
-	options.LabelSelector = "cattle.io/creator=norman2"
+	options.LabelSelector = normanSelector
 	options.RemoveCattleFinalizers = true
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
-
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
@@ -122,16 +122,8 @@ func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourc
 
 	listOptions := metav1.ListOptions{}
 	listOptions.LabelSelector = labelSelector
-	//if len(labelss) > 0 {
-	//foo, _ := labels.NewRequirement("cattle.io/creator", selection.Equals, []string{"norman"})
-	//bar, _ := labels.NewRequirement("cattle.io/creator", selection.Equals, []string{"normans"})
-	//selector := labels.NewSelector()
-	//selector = selector.Add(*foo).Add(*bar)
 
-	//listOptions.LabelSelector = labless
-	//}
-
-	list, err := dynClient.Resource(resourceId).List(context.TODO(), metav1.ListOptions{})
+	list, err := dynClient.Resource(resourceId).List(context.TODO(), listOptions)
 	if err != nil {
 		ctx.Log().Errorf("Component %s failed to list %s: %v", ComponentName, resourceId.Resource, err)
 		return nil, err
