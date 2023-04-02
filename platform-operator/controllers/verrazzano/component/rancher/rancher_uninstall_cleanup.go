@@ -67,8 +67,8 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	options := defaultDeleteOptions()
 	options.LabelSelector = normanSelector
 	options.RemoveCattleFinalizers = true
-	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
@@ -119,10 +119,8 @@ func deleteResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resou
 
 // listResource - common function to list resource without a Namespace
 func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, labelSelector string) (*unstructured.UnstructuredList, error) {
-
 	listOptions := metav1.ListOptions{}
 	listOptions.LabelSelector = labelSelector
-
 	list, err := dynClient.Resource(resourceId).List(context.TODO(), listOptions)
 	if err != nil {
 		ctx.Log().Errorf("Component %s failed to list %s: %v", ComponentName, resourceId.Resource, err)
@@ -133,7 +131,9 @@ func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourc
 
 // listResourceByNamespace - common function for listing resources
 func listResourceByNamespace(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, namespace string, labelSelector string) (*unstructured.UnstructuredList, error) {
-	list, err := dynClient.Resource(resourceId).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	listOptions := metav1.ListOptions{}
+	listOptions.LabelSelector = labelSelector
+	list, err := dynClient.Resource(resourceId).Namespace(namespace).List(context.TODO(), listOptions)
 	if err != nil {
 		ctx.Log().Errorf("Component %s failed to list %s/%s: %v", ComponentName, ComponentNamespace, resourceId.Resource, err)
 		return nil, err
