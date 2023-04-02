@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,7 @@ var getDynamicClientForCleanupFunc getDynamicClientFuncSig = getDynamicClientFor
 type deleteOptions struct {
 	Namespace              string
 	RemoveCattleFinalizers bool
-	Labels                 []string
+	LabelSelector          string
 	NameFilter             []string
 }
 
@@ -35,7 +36,7 @@ type deleteOptions struct {
 func defaultDeleteOptions() deleteOptions {
 	return deleteOptions{
 		RemoveCattleFinalizers: false,
-		Labels:                 []string{},
+		LabelSelector:          "",
 		NameFilter:             []string{},
 	}
 }
@@ -64,19 +65,15 @@ func cleanupWebhooks(ctx spi.ComponentContext) {
 // cleanupClusterRolesAndBindings - Implement the portion of the rancher-cleanup script that deletes ClusterRoles and ClusterRoleBindings
 func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	options := defaultDeleteOptions()
-	options.Labels = []string{"cattle.io/creator=norman"}
+	options.LabelSelector = "cattle.io/creator=norman2"
 	options.RemoveCattleFinalizers = true
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
-
-	//kubectl get clusterrolebinding -l cattle.io/creator=norman --no-headers -o custom-columns=NAME:.metadata.name | while read -r CRB; do
-	//kcpf clusterrolebindings "$CRB"
-	//kcd "clusterrolebindings ""$CRB"""
-	//done
 
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
 func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionResource, options deleteOptions) {
+	var errorList []error
 	dynClient, err := getClient(ctx)
 	if err != nil {
 		return
@@ -84,16 +81,22 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 
 	var list *unstructured.UnstructuredList
 	if len(options.Namespace) > 0 {
-		list, err = listResourceByNamespace(ctx, dynClient, resourceId, options.Namespace)
+		list, err = listResourceByNamespace(ctx, dynClient, resourceId, options.Namespace, options.LabelSelector)
 	} else {
-		list, err = listResource(ctx, dynClient, resourceId)
+		list, err = listResource(ctx, dynClient, resourceId, options.LabelSelector)
 	}
 	if err != nil {
 		return
 	}
 
 	// Delete each of the items returned
-	for _, item := range list.Items {
+	for i, item := range list.Items {
+		if options.RemoveCattleFinalizers {
+			err = removeFinalizer(ctx, &list.Items[i], []string{finalizerSubString})
+			if err != nil {
+				errorList = append(errorList, err)
+			}
+		}
 		if len(options.NameFilter) == 0 {
 			deleteResource(ctx, dynClient, resourceId, item)
 		} else {
@@ -115,7 +118,19 @@ func deleteResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resou
 }
 
 // listResource - common function to list resource without a Namespace
-func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource) (*unstructured.UnstructuredList, error) {
+func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, labelSelector string) (*unstructured.UnstructuredList, error) {
+
+	listOptions := metav1.ListOptions{}
+	listOptions.LabelSelector = labelSelector
+	//if len(labelss) > 0 {
+	//foo, _ := labels.NewRequirement("cattle.io/creator", selection.Equals, []string{"norman"})
+	//bar, _ := labels.NewRequirement("cattle.io/creator", selection.Equals, []string{"normans"})
+	//selector := labels.NewSelector()
+	//selector = selector.Add(*foo).Add(*bar)
+
+	//listOptions.LabelSelector = labless
+	//}
+
 	list, err := dynClient.Resource(resourceId).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		ctx.Log().Errorf("Component %s failed to list %s: %v", ComponentName, resourceId.Resource, err)
@@ -125,7 +140,7 @@ func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourc
 }
 
 // listResourceByNamespace - common function for listing resources
-func listResourceByNamespace(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func listResourceByNamespace(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, namespace string, labelSelector string) (*unstructured.UnstructuredList, error) {
 	list, err := dynClient.Resource(resourceId).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		ctx.Log().Errorf("Component %s failed to list %s/%s: %v", ComponentName, ComponentNamespace, resourceId.Resource, err)

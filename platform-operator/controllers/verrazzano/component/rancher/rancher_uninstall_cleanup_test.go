@@ -57,6 +57,12 @@ var (
 			Name: fmt.Sprintf("test-%s", webhookMonitorFilter),
 		},
 	}
+	clusterRoleBinding1 = &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "",
+			Labels: map[string]string{"cattle.io/creator": "norman"},
+		},
+	}
 )
 
 // Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
@@ -92,15 +98,15 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 		expectedLen = 0
 	}
 
-	list, err := listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, ComponentNamespace)
+	list, err := listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}, ComponentNamespace, "")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
 
-	list, err = listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace)
+	list, err = listResourceByNamespace(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}, ComponentNamespace, "")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
 
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"})
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "")
 	assert.NoError(t, err)
 	for _, item := range list.Items {
 		if cleanupDone {
@@ -111,7 +117,7 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 		}
 	}
 
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"})
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "")
 	assert.NoError(t, err)
 	for _, item := range list.Items {
 		if cleanupDone {
@@ -121,6 +127,11 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 			assert.True(t, strings.Contains(item.GetName(), cattleNameFilter) || strings.Contains(item.GetName(), webhookMonitorFilter))
 		}
 	}
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "cattle.io/creator=norman")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
+
 }
 
 func getSchemeForCleanup() *runtime.Scheme {
@@ -133,5 +144,6 @@ func getSchemeForCleanup() *runtime.Scheme {
 }
 
 func newClusterCleanupRepoResources() []runtime.Object {
-	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration, mutatingWebhookConfiguration2, validatingWebhookConfiguration2}
+	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration,
+		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1}
 }
