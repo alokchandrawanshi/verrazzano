@@ -84,6 +84,13 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	options.NameMatchType = HasPrefix
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
+
+	options.LabelSelector = ""
+	options.NameFilter = []string{"rancher"}
+	options.NameMatchType = Contains
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
+
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
