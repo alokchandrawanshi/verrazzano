@@ -331,12 +331,26 @@ spec:
   disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
 {{- end }}
   portName: {{ .Values.prometheus.prometheusSpec.portName }}
-{{- if .Values.prometheus.prometheusSpec.volumes }}
   volumes:
+{{- if .Values.prometheus.prometheusSpec.volumes }}
 {{ toYaml .Values.prometheus.prometheusSpec.volumes | indent 4 }}
 {{- end }}
-{{- if .Values.prometheus.prometheusSpec.volumeMounts }}
+# Volume to enable an in-memory location for Istio to place and serve certificates
+    - name: istio-certs-dir
+      emptyDir:
+        medium: Memory
+    - name: managed-cluster-ca-certs
+      secret:
+        defaultMode: 420
+        optional: true
+        secretName: managed-cluster-ca-certs
+  {{- if .Values.prometheus.prometheusSpec.volumeMounts }}
   volumeMounts:
+    - mountPath: /etc/istio-certs
+      name: istio-certs-dir
+    - mountPath: /etc/prometheus/managed-cluster-ca-certs
+      name: managed-cluster-ca-certs
+      readOnly: true
 {{ toYaml .Values.prometheus.prometheusSpec.volumeMounts | indent 4 }}
 {{- end }}
 {{- if .Values.prometheus.prometheusSpec.arbitraryFSAccessThroughSMs }}
