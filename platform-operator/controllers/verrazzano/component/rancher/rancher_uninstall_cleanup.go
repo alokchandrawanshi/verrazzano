@@ -96,6 +96,23 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
 
+	options.NameFilter = []string{"gitjob"}
+	options.NameMatchType = HasPrefix
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
+
+	options.NameFilter = []string{"pod-impersonation-helm-"}
+	options.NameMatchType = HasPrefix
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
+
+	/*
+		kubectl get clusterrolebinding --no-headers -o custom-columns=NAME:.metadata.name | grep ^pod-impersonation-helm- | while read -r CRB; do
+		  kcpf clusterrolebindings "$CRB"
+		  kcd "clusterrolebindings ""$CRB"""
+		done
+
+	*/
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed

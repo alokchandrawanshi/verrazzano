@@ -105,6 +105,30 @@ var (
 			Labels: map[string]string{"clusterRole4": "true"},
 		},
 	}
+	clusterRoleBinding5 = &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "gitjob-clusterRoleBinding5",
+			Labels: map[string]string{"clusterRoleBinding5": "true"},
+		},
+	}
+	clusterRole5 = &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "gitjob-clusterRole5",
+			Labels: map[string]string{"clusterRole5": "true"},
+		},
+	}
+	clusterRoleBinding6 = &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "pod-impersonation-helm-clusterRoleBinding6",
+			Labels: map[string]string{"clusterRoleBinding6": "true"},
+		},
+	}
+	clusterRole6 = &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "pod-impersonation-helm-clusterRole6",
+			Labels: map[string]string{"clusterRole6": "true"},
+		},
+	}
 )
 
 // Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
@@ -202,6 +226,21 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
 
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding5=true")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole5=true")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding6=true")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole6=true")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
 }
 
 func getSchemeForCleanup() *runtime.Scheme {
@@ -216,5 +255,6 @@ func getSchemeForCleanup() *runtime.Scheme {
 func newClusterCleanupRepoResources() []runtime.Object {
 	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration,
 		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1, clusterRole1,
-		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4}
+		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4,
+		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6}
 }
