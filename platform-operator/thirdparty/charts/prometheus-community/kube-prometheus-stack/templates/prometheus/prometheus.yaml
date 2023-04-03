@@ -345,14 +345,14 @@ spec:
         optional: true
         secretName: managed-cluster-ca-certs
   volumeMounts:
+{{- if .Values.prometheus.prometheusSpec.volumeMounts }}
+{{ toYaml .Values.prometheus.prometheusSpec.volumeMounts | indent 4 }}
+{{- end }}
     - mountPath: /etc/istio-certs
       name: istio-certs-dir
     - mountPath: /etc/prometheus/managed-cluster-ca-certs
       name: managed-cluster-ca-certs
       readOnly: true
-{{- if .Values.prometheus.prometheusSpec.volumeMounts }}
-{{ toYaml .Values.prometheus.prometheusSpec.volumeMounts | indent 4 }}
-{{- end }}
 {{- if .Values.prometheus.prometheusSpec.arbitraryFSAccessThroughSMs }}
   arbitraryFSAccessThroughSMs:
 {{ toYaml .Values.prometheus.prometheusSpec.arbitraryFSAccessThroughSMs | indent 4 }}
