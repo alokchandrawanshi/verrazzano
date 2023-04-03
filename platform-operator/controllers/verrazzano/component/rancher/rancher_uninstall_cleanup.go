@@ -30,7 +30,15 @@ type deleteOptions struct {
 	RemoveCattleFinalizers bool
 	LabelSelector          string
 	NameFilter             []string
+	NameMatchType          nameMatchType
 }
+
+type nameMatchType string
+
+const (
+	Contains  nameMatchType = "contains"
+	HasPrefix nameMatchType = "startsWith"
+)
 
 // defaultDeleteOptions - create an instance of deleteOptions with default values
 func defaultDeleteOptions() deleteOptions {
@@ -38,6 +46,7 @@ func defaultDeleteOptions() deleteOptions {
 		RemoveCattleFinalizers: false,
 		LabelSelector:          "",
 		NameFilter:             []string{},
+		NameMatchType:          Contains,
 	}
 }
 
@@ -67,6 +76,12 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	options := defaultDeleteOptions()
 	options.LabelSelector = normanSelector
 	options.RemoveCattleFinalizers = true
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
+
+	options.LabelSelector = ""
+	options.NameFilter = []string{"cattle-"}
+	options.NameMatchType = HasPrefix
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
 }
@@ -101,7 +116,9 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 			deleteResource(ctx, dynClient, resourceId, item)
 		} else {
 			for _, filter := range options.NameFilter {
-				if strings.Contains(item.GetName(), filter) {
+				if options.NameMatchType == Contains && strings.Contains(item.GetName(), filter) {
+					deleteResource(ctx, dynClient, resourceId, item)
+				} else if options.NameMatchType == HasPrefix && strings.HasPrefix(item.GetName(), filter) {
 					deleteResource(ctx, dynClient, resourceId, item)
 				}
 			}
