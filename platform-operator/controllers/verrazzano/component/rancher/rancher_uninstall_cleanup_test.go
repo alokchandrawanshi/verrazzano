@@ -93,6 +93,18 @@ var (
 			Labels: map[string]string{"clusterRole3": "true"},
 		},
 	}
+	clusterRoleBinding4 = &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "fleet-clusterRoleBinding4",
+			Labels: map[string]string{"clusterRoleBinding4": "true"},
+		},
+	}
+	clusterRole4 = &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "fleet-clusterRole4",
+			Labels: map[string]string{"clusterRole4": "true"},
+		},
+	}
 )
 
 // Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
@@ -182,6 +194,14 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
 
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding4=true")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole4=true")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
+
 }
 
 func getSchemeForCleanup() *runtime.Scheme {
@@ -196,5 +216,5 @@ func getSchemeForCleanup() *runtime.Scheme {
 func newClusterCleanupRepoResources() []runtime.Object {
 	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration,
 		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1, clusterRole1,
-		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3}
+		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4}
 }
