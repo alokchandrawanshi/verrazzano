@@ -326,14 +326,6 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		if err != nil {
 			return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
 		}
-
-		kvs, err = appendAdditionalVolumeOverrides(ctx,
-			"prometheus.prometheusSpec.volumeMounts",
-			"prometheus.prometheusSpec.volumes",
-			kvs)
-		if err != nil {
-			return kvs, ctx.Log().ErrorfNewErr("Failed applying additional volume overrides for Prometheus")
-		}
 	} else {
 		kvs = append(kvs, bom.KeyValue{
 			Key:   "prometheus.enabled",
@@ -436,6 +428,7 @@ func (c prometheusComponent) validatePrometheusOperator(vz *installv1beta1.Verra
 func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Istio annotations that will copy the volume mount for the Istio certs to the envoy sidecar
 	// The last annotation allows envoy to intercept only requests from the Keycloak Service IP
+	// The Helm chart specifies a volume mount on the Prometheus container to mount the Istio-generated certificates
 	annotations := map[string]string{
 		`proxy\.istio\.io/config`:                             `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 		`sidecar\.istio\.io/userVolumeMount`:                  `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
@@ -445,27 +438,6 @@ func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	for key, value := range annotations {
 		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s.%s", annotationsKey, key), Value: value})
 	}
-
-	// Volume mount on the Prometheus container to mount the Istio-generated certificates
-	/*	vm := corev1.VolumeMount{
-			Name:      istioVolumeName,
-			MountPath: istioCertMountPath,
-		}
-		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeMountKey), Value: vm.Name})
-		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].mountPath", volumeMountKey), Value: vm.MountPath})
-
-		// Volume annotation to enable an in-memory location for Istio to place and serve certificates
-		vol := corev1.Volume{
-			Name: istioVolumeName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{
-					Medium: corev1.StorageMediumMemory,
-				},
-			},
-		}
-		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeKey), Value: vol.Name})
-		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].emptyDir.medium", volumeKey), Value: string(vol.VolumeSource.EmptyDir.Medium)})
-	*/
 	return kvs, nil
 }
 
@@ -484,21 +456,6 @@ func GetOverrides(object runtime.Object) interface{} {
 	}
 
 	return []vzapi.Overrides{}
-}
-
-// appendAdditionalVolumeOverrides adds a volume and volume mount so we can mount managed cluster TLS certs from a secret in the Prometheus pod.
-// Initially the secret does not exist. When managed clusters are created, the secret is created and Prometheus TLS certs for the managed
-// clusters are added to the secret.
-func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	/*kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].name", volumeMountKey), Value: "managed-cluster-ca-certs"})
-	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].mountPath", volumeMountKey), Value: "/etc/prometheus/managed-cluster-ca-certs"})
-	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].readOnly", volumeMountKey), Value: "true"})
-
-	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].name", volumeKey), Value: "managed-cluster-ca-certs"})
-	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.secretName", volumeKey), Value: constants.PromManagedClusterCACertsSecretName})
-	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.optional", volumeKey), Value: "true"})
-	*/
-	return kvs, nil
 }
 
 // applySystemMonitors applies templatized PodMonitor and ServiceMonitor custom resources for Verrazzano system
