@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	policyv1 "k8s.io/api/policy/v1beta1"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -129,6 +131,18 @@ var (
 			Labels: map[string]string{"clusterRole6": "true"},
 		},
 	}
+	podSecurityPolicy1 = &policyv1.PodSecurityPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "podSecurityPolicy1",
+			Labels: map[string]string{"app.kubernetes.io/name": "rancher-logging", "podSecurityPolicy1": "true"},
+		},
+	}
+	podSecurityPolicy2 = &policyv1.PodSecurityPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "rancher-logging-rke-aggregator",
+			Labels: map[string]string{"podSecurityPolicy2": "true"},
+		},
+	}
 )
 
 // Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
@@ -241,6 +255,14 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole6=true")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy1=true")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
+
+	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy2=true")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLen, len(list.Items))
 }
 
 func getSchemeForCleanup() *runtime.Scheme {
@@ -249,6 +271,7 @@ func getSchemeForCleanup() *runtime.Scheme {
 	_ = admv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
+	_ = policyv1.AddToScheme(scheme)
 	return scheme
 }
 
@@ -256,5 +279,6 @@ func newClusterCleanupRepoResources() []runtime.Object {
 	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration,
 		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1, clusterRole1,
 		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4,
-		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6}
+		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6,
+		podSecurityPolicy1, podSecurityPolicy2}
 }

@@ -37,6 +37,7 @@ type nameMatchType string
 
 const (
 	Contains  nameMatchType = "contains"
+	Equals    nameMatchType = "equals"
 	HasPrefix nameMatchType = "startsWith"
 )
 
@@ -55,6 +56,7 @@ func cleanupRancher(ctx spi.ComponentContext) {
 	cleanupPreventRecreate(ctx)
 	cleanupWebhooks(ctx)
 	cleanupClusterRolesAndBindings(ctx)
+	cleanupPodSecurityPolicies(ctx)
 }
 
 // cleanupPreventRecreate - delete resources that would recreate resources during the cleanup
@@ -107,6 +109,18 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
 }
 
+// cleanupPodSecurityPolicies - Implement the portion of the rancher-cleanup script that deletes PodSecurityPolicies
+func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
+	options := defaultDeleteOptions()
+	options.LabelSelector = "app.kubernetes.io/name=rancher-logging"
+	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
+
+	options.LabelSelector = ""
+	options.NameFilter = []string{"rancher-logging-rke-aggregator"}
+	options.NameMatchType = Equals
+	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
+}
+
 // deleteResources - Delete all instances of a resource that meet the filters passed
 func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionResource, options deleteOptions) {
 	var errorList []error
@@ -140,6 +154,8 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 				if options.NameMatchType == Contains && strings.Contains(item.GetName(), filter) {
 					deleteResource(ctx, dynClient, resourceId, item)
 				} else if options.NameMatchType == HasPrefix && strings.HasPrefix(item.GetName(), filter) {
+					deleteResource(ctx, dynClient, resourceId, item)
+				} else if options.NameMatchType == Equals && strings.EqualFold(item.GetName(), filter) {
 					deleteResource(ctx, dynClient, resourceId, item)
 				}
 			}
