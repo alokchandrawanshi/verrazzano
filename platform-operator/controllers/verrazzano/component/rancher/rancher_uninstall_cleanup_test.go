@@ -143,6 +143,18 @@ var (
 			Labels: map[string]string{"podSecurityPolicy2": "true"},
 		},
 	}
+	podSecurityPolicy3 = &policyv1.PodSecurityPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "podSecurityPolicy3",
+			Labels: map[string]string{"release": "rancher-monitoring", "podSecurityPolicy3": "true"},
+		},
+	}
+	podSecurityPolicy4 = &policyv1.PodSecurityPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "podSecurityPolicy4",
+			Labels: map[string]string{"app": "rancher-monitoring-crd-manager", "podSecurityPolicy4": "true"},
+		},
+	}
 )
 
 // Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
@@ -208,61 +220,29 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 		}
 	}
 
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, normanSelector)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, normanSelector, expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, normanSelector, expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding2=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole2=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding3=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole3=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding4=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole4=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding5=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole5=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding6=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole6=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy1=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy2=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy3=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy4=true", expectedLen)
+}
+
+func verifyResource(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, gvr schema.GroupVersionResource, labelSelector string, expectedLen int) {
+	list, err := listResource(ctx, fakeDynamicClient, gvr, labelSelector)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
 
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, normanSelector)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding2=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole2=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding3=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole3=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding4=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole4=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding5=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole5=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding6=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, "clusterRole6=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy1=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy2=true")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedLen, len(list.Items))
 }
 
 func getSchemeForCleanup() *runtime.Scheme {
@@ -280,5 +260,5 @@ func newClusterCleanupRepoResources() []runtime.Object {
 		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1, clusterRole1,
 		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4,
 		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6,
-		podSecurityPolicy1, podSecurityPolicy2}
+		podSecurityPolicy1, podSecurityPolicy2, podSecurityPolicy3, podSecurityPolicy4}
 }

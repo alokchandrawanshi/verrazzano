@@ -111,17 +111,25 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 
 // cleanupPodSecurityPolicies - Implement the portion of the rancher-cleanup script that deletes PodSecurityPolicies
 func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
-	// Rancher Logging
+	// Delete policies by label selector
+	labelSelectors := []string{"app.kubernetes.io/name=rancher-logging", "release=rancher-monitoring", "app=rancher-monitoring-crd-manager"}
 	options := defaultDeleteOptions()
-	options.LabelSelector = "app.kubernetes.io/name=rancher-logging"
-	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
+	for _, selector := range labelSelectors {
+		options.LabelSelector = selector
+		deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
+	}
 
 	options.LabelSelector = ""
 	options.NameFilter = []string{"rancher-logging-rke-aggregator"}
 	options.NameMatchType = Equals
 	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
 
-	// Rancher Monitoring
+	/*
+		for PSP in   $(kubectl get podsecuritypolicy -o name -l app=rancher-monitoring-patch-sa) $(kubectl get podsecuritypolicy -o name -l app.kubernetes.io/instance=rancher-monitoring); do
+		  kcd "$PSP"
+		done
+
+	*/
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
