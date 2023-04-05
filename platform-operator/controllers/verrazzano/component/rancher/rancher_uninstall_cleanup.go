@@ -81,29 +81,14 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 	options.LabelSelector = normanSelector
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
-
 	options.LabelSelector = ""
-	options.NameFilter = []string{"cattle-"}
-	options.NameMatchType = HasPrefix
-	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
-	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
 
 	options.NameFilter = []string{"rancher"}
 	options.NameMatchType = Contains
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
 
-	options.NameFilter = []string{"fleet-"}
-	options.NameMatchType = HasPrefix
-	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
-	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
-
-	options.NameFilter = []string{"gitjob"}
-	options.NameMatchType = HasPrefix
-	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
-	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
-
-	options.NameFilter = []string{"pod-impersonation-helm-"}
+	options.NameFilter = []string{"cattle-", "fleet-", "gitjob", "pod-impersonation-helm-"}
 	options.NameMatchType = HasPrefix
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, options)
 	deleteResources(ctx, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, options)
