@@ -133,7 +133,7 @@ func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
-func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionResource, options deleteOptions) {
+func deleteResources(ctx spi.ComponentContext, gvr schema.GroupVersionResource, options deleteOptions) {
 	var errorList []error
 	dynClient, err := getClient(ctx)
 	if err != nil {
@@ -142,9 +142,9 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 
 	var list *unstructured.UnstructuredList
 	if len(options.Namespace) > 0 {
-		list, err = listResourceByNamespace(ctx, dynClient, resourceId, options.Namespace, options.LabelSelector)
+		list, err = listResourceByNamespace(ctx, dynClient, gvr, options.Namespace, options.LabelSelector)
 	} else {
-		list, err = listResource(ctx, dynClient, resourceId, options.LabelSelector)
+		list, err = listResource(ctx, dynClient, gvr, options.LabelSelector)
 	}
 	if err != nil {
 		return
@@ -159,15 +159,15 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 			}
 		}
 		if len(options.NameFilter) == 0 {
-			deleteResource(ctx, dynClient, resourceId, item)
+			deleteResource(ctx, dynClient, gvr, item)
 		} else {
 			for _, filter := range options.NameFilter {
 				if options.NameMatchType == Contains && strings.Contains(item.GetName(), filter) {
-					deleteResource(ctx, dynClient, resourceId, item)
+					deleteResource(ctx, dynClient, gvr, item)
 				} else if options.NameMatchType == HasPrefix && strings.HasPrefix(item.GetName(), filter) {
-					deleteResource(ctx, dynClient, resourceId, item)
+					deleteResource(ctx, dynClient, gvr, item)
 				} else if options.NameMatchType == Equals && strings.EqualFold(item.GetName(), filter) {
-					deleteResource(ctx, dynClient, resourceId, item)
+					deleteResource(ctx, dynClient, gvr, item)
 				}
 			}
 		}
@@ -175,32 +175,32 @@ func deleteResources(ctx spi.ComponentContext, resourceId schema.GroupVersionRes
 }
 
 // deleteResource - delete a single instance of a resource
-func deleteResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, item unstructured.Unstructured) {
-	err := dynClient.Resource(resourceId).Namespace(item.GetNamespace()).Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
+func deleteResource(ctx spi.ComponentContext, dynClient dynamic.Interface, gvr schema.GroupVersionResource, item unstructured.Unstructured) {
+	err := dynClient.Resource(gvr).Namespace(item.GetNamespace()).Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		ctx.Log().Errorf("Component %s failed to delete %s %s/%s: %v", resourceId.Resource, item.GetNamespace(), item.GetName(), err)
+		ctx.Log().Errorf("Component %s failed to delete %s %s/%s: %v", gvr.Resource, item.GetNamespace(), item.GetName(), err)
 	}
 }
 
 // listResource - common function to list resource without a Namespace
-func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, labelSelector string) (*unstructured.UnstructuredList, error) {
+func listResource(ctx spi.ComponentContext, dynClient dynamic.Interface, gvr schema.GroupVersionResource, labelSelector string) (*unstructured.UnstructuredList, error) {
 	listOptions := metav1.ListOptions{}
 	listOptions.LabelSelector = labelSelector
-	list, err := dynClient.Resource(resourceId).List(context.TODO(), listOptions)
+	list, err := dynClient.Resource(gvr).List(context.TODO(), listOptions)
 	if err != nil {
-		ctx.Log().Errorf("Component %s failed to list %s: %v", ComponentName, resourceId.Resource, err)
+		ctx.Log().Errorf("Component %s failed to list %s: %v", ComponentName, gvr.Resource, err)
 		return nil, err
 	}
 	return list, nil
 }
 
 // listResourceByNamespace - common function for listing resources
-func listResourceByNamespace(ctx spi.ComponentContext, dynClient dynamic.Interface, resourceId schema.GroupVersionResource, namespace string, labelSelector string) (*unstructured.UnstructuredList, error) {
+func listResourceByNamespace(ctx spi.ComponentContext, dynClient dynamic.Interface, gvr schema.GroupVersionResource, namespace string, labelSelector string) (*unstructured.UnstructuredList, error) {
 	listOptions := metav1.ListOptions{}
 	listOptions.LabelSelector = labelSelector
-	list, err := dynClient.Resource(resourceId).Namespace(namespace).List(context.TODO(), listOptions)
+	list, err := dynClient.Resource(gvr).Namespace(namespace).List(context.TODO(), listOptions)
 	if err != nil {
-		ctx.Log().Errorf("Component %s failed to list %s/%s: %v", ComponentName, ComponentNamespace, resourceId.Resource, err)
+		ctx.Log().Errorf("Component %s failed to list %s/%s: %v", ComponentName, ComponentNamespace, gvr.Resource, err)
 		return nil, err
 	}
 	return list, nil
