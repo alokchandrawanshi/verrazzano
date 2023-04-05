@@ -57,6 +57,7 @@ func cleanupRancher(ctx spi.ComponentContext) {
 	cleanupWebhooks(ctx)
 	cleanupClusterRolesAndBindings(ctx)
 	cleanupPodSecurityPolicies(ctx)
+	cleanupApiResources(ctx)
 }
 
 // cleanupPreventRecreate - delete resources that would recreate resources during the cleanup
@@ -110,6 +111,10 @@ func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 	options.NameFilter = []string{"rancher-logging-rke-aggregator"}
 	options.NameMatchType = Equals
 	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
+}
+
+func cleanupApiResources(ctx spi.ComponentContext) {
+
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
