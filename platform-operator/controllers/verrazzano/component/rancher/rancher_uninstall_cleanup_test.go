@@ -65,96 +65,46 @@ var (
 			Labels: map[string]string{"cattle.io/creator": "norman"},
 		},
 	}
-	clusterRole1 = &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "clusterRole1",
-			Labels: map[string]string{"cattle.io/creator": "norman"},
-		},
-	}
+	clusterRole1        = newClusterRole2("clusterRole1", map[string]string{"cattle.io/creator": "norman"})
 	clusterRoleBinding2 = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "cattle-clusterRoleBinding2",
 			Labels: map[string]string{"clusterRoleBinding2": "true"},
 		},
 	}
-	clusterRole2 = &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "cattle-clusterRole2",
-			Labels: map[string]string{"clusterRole2": "true"},
-		},
-	}
+	clusterRole2        = newClusterRole2("cattle-clusterRole2", map[string]string{"clusterRole2": "true"})
 	clusterRoleBinding3 = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "rancher-clusterRoleBinding3",
 			Labels: map[string]string{"clusterRoleBinding3": "true"},
 		},
 	}
-	clusterRole3 = &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "rancher-clusterRole3",
-			Labels: map[string]string{"clusterRole3": "true"},
-		},
-	}
+	clusterRole3        = newClusterRole2("rancher-clusterRole3", map[string]string{"clusterRole3": "true"})
 	clusterRoleBinding4 = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "fleet-clusterRoleBinding4",
 			Labels: map[string]string{"clusterRoleBinding4": "true"},
 		},
 	}
-	clusterRole4 = &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "fleet-clusterRole4",
-			Labels: map[string]string{"clusterRole4": "true"},
-		},
-	}
+	clusterRole4        = newClusterRole2("fleet-clusterRole4", map[string]string{"clusterRole4": "true"})
 	clusterRoleBinding5 = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "gitjob-clusterRoleBinding5",
 			Labels: map[string]string{"clusterRoleBinding5": "true"},
 		},
 	}
-	clusterRole5 = &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "gitjob-clusterRole5",
-			Labels: map[string]string{"clusterRole5": "true"},
-		},
-	}
+	clusterRole5        = newClusterRole2("gitjob-clusterRole5", map[string]string{"clusterRole5": "true"})
 	clusterRoleBinding6 = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "pod-impersonation-helm-clusterRoleBinding6",
 			Labels: map[string]string{"clusterRoleBinding6": "true"},
 		},
 	}
-	clusterRole6 = &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "pod-impersonation-helm-clusterRole6",
-			Labels: map[string]string{"clusterRole6": "true"},
-		},
-	}
-	podSecurityPolicy1 = &policyv1.PodSecurityPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "podSecurityPolicy1",
-			Labels: map[string]string{"app.kubernetes.io/name": "rancher-logging", "podSecurityPolicy1": "true"},
-		},
-	}
-	podSecurityPolicy2 = &policyv1.PodSecurityPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "rancher-logging-rke-aggregator",
-			Labels: map[string]string{"podSecurityPolicy2": "true"},
-		},
-	}
-	podSecurityPolicy3 = &policyv1.PodSecurityPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "podSecurityPolicy3",
-			Labels: map[string]string{"release": "rancher-monitoring", "podSecurityPolicy3": "true"},
-		},
-	}
-	podSecurityPolicy4 = &policyv1.PodSecurityPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "podSecurityPolicy4",
-			Labels: map[string]string{"app": "rancher-monitoring-crd-manager", "podSecurityPolicy4": "true"},
-		},
-	}
+	clusterRole6       = newClusterRole2("pod-impersonation-helm-clusterRole6", map[string]string{"clusterRole6": "true"})
+	podSecurityPolicy1 = newPodSecurityPolicy("podSecurityPolicy1", map[string]string{"app.kubernetes.io/name": "rancher-logging", "podSecurityPolicy1": "true"})
+	podSecurityPolicy2 = newPodSecurityPolicy("rancher-logging-rke-aggregator", map[string]string{"podSecurityPolicy2": "true"})
+	podSecurityPolicy3 = newPodSecurityPolicy("podSecurityPolicy3", map[string]string{"release": "rancher-monitoring", "podSecurityPolicy3": "true"})
+	podSecurityPolicy4 = newPodSecurityPolicy("podSecurityPolicy4", map[string]string{"app": "rancher-monitoring-crd-manager", "podSecurityPolicy4": "true"})
 )
 
 // Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
@@ -261,4 +211,22 @@ func newClusterCleanupRepoResources() []runtime.Object {
 		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4,
 		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6,
 		podSecurityPolicy1, podSecurityPolicy2, podSecurityPolicy3, podSecurityPolicy4}
+}
+
+func newClusterRole2(name string, labels map[string]string) *rbacv1.ClusterRole {
+	return &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: labels,
+		},
+	}
+}
+
+func newPodSecurityPolicy(name string, labels map[string]string) *policyv1.PodSecurityPolicy {
+	return &policyv1.PodSecurityPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: labels,
+		},
+	}
 }
