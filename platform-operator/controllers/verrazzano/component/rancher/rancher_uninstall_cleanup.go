@@ -113,7 +113,8 @@ func cleanupClusterRolesAndBindings(ctx spi.ComponentContext) {
 func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 	// Delete policies by label selector
 	labelSelectors := []string{"app.kubernetes.io/name=rancher-logging", "release=rancher-monitoring", "app=rancher-monitoring-crd-manager",
-		"app=rancher-monitoring-patch-sa", "app.kubernetes.io/instance=rancher-monitoring"}
+		"app=rancher-monitoring-patch-sa", "app.kubernetes.io/instance=rancher-monitoring", "release=rancher-gatekeeper",
+		"app=rancher-gatekeeper-crd-manager"}
 	options := defaultDeleteOptions()
 	for _, selector := range labelSelectors {
 		options.LabelSelector = selector

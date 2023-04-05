@@ -51,6 +51,8 @@ var (
 	podSecurityPolicy4              = newPodSecurityPolicy("podSecurityPolicy4", map[string]string{"app": "rancher-monitoring-crd-manager", "podSecurityPolicy4": "true"})
 	podSecurityPolicy5              = newPodSecurityPolicy("podSecurityPolicy5", map[string]string{"app": "rancher-monitoring-patch-sa", "podSecurityPolicy5": "true"})
 	podSecurityPolicy6              = newPodSecurityPolicy("podSecurityPolicy6", map[string]string{"app.kubernetes.io/instance": "rancher-monitoring", "podSecurityPolicy6": "true"})
+	podSecurityPolicy7              = newPodSecurityPolicy("podSecurityPolicy7", map[string]string{"release": "rancher-gatekeeper", "podSecurityPolicy7": "true"})
+	podSecurityPolicy8              = newPodSecurityPolicy("podSecurityPolicy8", map[string]string{"app": "rancher-gatekeeper-crd-manager", "podSecurityPolicy8": "true"})
 )
 
 // Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
@@ -134,6 +136,8 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy4=true", expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy5=true", expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy6=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy7=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy8=true", expectedLen)
 }
 
 func verifyResource(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, gvr schema.GroupVersionResource, labelSelector string, expectedLen int) {
@@ -158,7 +162,7 @@ func newClusterCleanupRepoResources() []runtime.Object {
 		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4,
 		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6,
 		podSecurityPolicy1, podSecurityPolicy2, podSecurityPolicy3, podSecurityPolicy4, podSecurityPolicy5,
-		podSecurityPolicy6}
+		podSecurityPolicy6, podSecurityPolicy7, podSecurityPolicy8}
 }
 
 func newDeployment(namespace string, name string) *appsv1.Deployment {
