@@ -708,8 +708,8 @@ func TestDeleteRancherFinalizers(t *testing.T) {
 	ns2 := newNamespace(constants2.VerrazzanoSystemNamespace)
 
 	// ClusterRole that contains Rancher finalizers
-	cr1 := newClusterRole("cr1", "default", []string{"test", "test.cattle.io"})
-	crb1 := newClusterRoleBinding("crb1", "default", []string{"test", "test.cattle.io"})
+	cr1 := newClusterRole("cr1", map[string]string{}, []string{"test", "test.cattle.io"})
+	crb1 := newClusterRoleBinding("crb1", map[string]string{}, []string{"test", "test.cattle.io"})
 
 	// Role and RoleBinding that does not contain any Rancher finalizers
 	r1 := newRole("rb1", constants2.VerrazzanoSystemNamespace, []string{"test"})
@@ -762,21 +762,21 @@ func newNamespace(name string) *v1.Namespace {
 		},
 	}
 }
-func newClusterRole(name string, namespace string, finalizers []string) *rbacv1.ClusterRole {
+func newClusterRole(name string, labels map[string]string, finalizers []string) *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:  namespace,
 			Name:       name,
+			Labels:     labels,
 			Finalizers: finalizers,
 		},
 	}
 }
 
-func newClusterRoleBinding(name string, namespace string, finalizers []string) *rbacv1.ClusterRoleBinding {
+func newClusterRoleBinding(name string, labels map[string]string, finalizers []string) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:  namespace,
 			Name:       name,
+			Labels:     labels,
 			Finalizers: finalizers,
 		},
 	}
