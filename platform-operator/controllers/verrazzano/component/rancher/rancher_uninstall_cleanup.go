@@ -110,13 +110,6 @@ func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 	options.NameFilter = []string{"rancher-logging-rke-aggregator"}
 	options.NameMatchType = Equals
 	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
-
-	/*
-		for PSP in $(kubectl get podsecuritypolicy -o name -l app.kubernetes.io/name=rancher-backup); do
-		  kcd "$PSP"
-		done
-
-	*/
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
