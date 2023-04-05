@@ -40,17 +40,9 @@ var (
 			Name:      common.RancherName,
 		},
 	}
-	mutatingWebhookConfiguration = &admv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("rancher.%s", cattleNameFilter),
-		},
-	}
-	validatingWebhookConfiguration = newValidatingWebhookConfiguration(fmt.Sprintf("rancher.%s", cattleNameFilter))
-	mutatingWebhookConfiguration2  = &admv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("test-%s", webhookMonitorFilter),
-		},
-	}
+	mutatingWebhookConfiguration    = newMutatingWebhookConfiguration(fmt.Sprintf("rancher.%s", cattleNameFilter))
+	validatingWebhookConfiguration  = newValidatingWebhookConfiguration(fmt.Sprintf("rancher.%s", cattleNameFilter))
+	mutatingWebhookConfiguration2   = newMutatingWebhookConfiguration(fmt.Sprintf("test-%s", webhookMonitorFilter))
 	validatingWebhookConfiguration2 = newValidatingWebhookConfiguration(fmt.Sprintf("test-%s", webhookMonitorFilter))
 	clusterRoleBinding1             = newClusterRoleBinding("clusterRoleBinding1", map[string]string{"cattle.io/creator": "norman"}, emptyFinalizer)
 	clusterRole1                    = newClusterRole("clusterRole1", map[string]string{"cattle.io/creator": "norman"}, emptyFinalizer)
@@ -155,7 +147,6 @@ func verifyResource(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dy
 	list, err := listResource(ctx, fakeDynamicClient, gvr, labelSelector)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
-
 }
 
 func getSchemeForCleanup() *runtime.Scheme {
@@ -187,6 +178,14 @@ func newPodSecurityPolicy(name string, labels map[string]string) *policyv1.PodSe
 
 func newValidatingWebhookConfiguration(name string) *admv1.ValidatingWebhookConfiguration {
 	return &admv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+}
+
+func newMutatingWebhookConfiguration(name string) *admv1.MutatingWebhookConfiguration {
+	return &admv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
