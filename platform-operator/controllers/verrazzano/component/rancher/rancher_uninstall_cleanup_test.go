@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	policyv1 "k8s.io/api/policy/v1beta1"
-
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -17,6 +15,7 @@ import (
 	admv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,19 +26,9 @@ import (
 )
 
 var (
-	emptyFinalizer []string
-	deployment     = &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: common.CattleSystem,
-			Name:      common.RancherName,
-		},
-	}
-	daemonSet = &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: common.CattleSystem,
-			Name:      common.RancherName,
-		},
-	}
+	emptyFinalizer                  []string
+	deployment                      = newDeployment(common.CattleSystem, common.RancherName)
+	daemonSet                       = newDaemonSet(common.CattleSystem, common.RancherName)
 	mutatingWebhookConfiguration    = newMutatingWebhookConfiguration(fmt.Sprintf("rancher.%s", cattleNameFilter))
 	validatingWebhookConfiguration  = newValidatingWebhookConfiguration(fmt.Sprintf("rancher.%s", cattleNameFilter))
 	mutatingWebhookConfiguration2   = newMutatingWebhookConfiguration(fmt.Sprintf("test-%s", webhookMonitorFilter))
@@ -165,6 +154,24 @@ func newClusterCleanupRepoResources() []runtime.Object {
 		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4,
 		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6,
 		podSecurityPolicy1, podSecurityPolicy2, podSecurityPolicy3, podSecurityPolicy4}
+}
+
+func newDeployment(namespace string, name string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+}
+
+func newDaemonSet(namespace string, name string) *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
 }
 
 func newPodSecurityPolicy(name string, labels map[string]string) *policyv1.PodSecurityPolicy {
