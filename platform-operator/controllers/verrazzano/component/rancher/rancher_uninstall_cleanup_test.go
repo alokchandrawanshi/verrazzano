@@ -27,6 +27,7 @@ import (
 
 var (
 	emptyFinalizer                  []string
+	namespace1                      = newNamespace("foo")
 	deployment                      = newDeployment(common.CattleSystem, common.RancherName)
 	daemonSet                       = newDaemonSet(common.CattleSystem, common.RancherName)
 	mutatingWebhookConfiguration    = newMutatingWebhookConfiguration(fmt.Sprintf("rancher.%s", cattleNameFilter))
@@ -160,6 +161,7 @@ func getSchemeForCleanup() *runtime.Scheme {
 
 func newClusterCleanupRepoResources() []runtime.Object {
 	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration,
+		namespace1,
 		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1, clusterRole1,
 		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4,
 		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6,

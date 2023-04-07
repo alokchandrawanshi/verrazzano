@@ -58,6 +58,7 @@ func cleanupRancher(ctx spi.ComponentContext) {
 	cleanupClusterRolesAndBindings(ctx)
 	cleanupPodSecurityPolicies(ctx)
 	cleanupApiResources(ctx)
+	cleanupNamespaces(ctx)
 }
 
 // cleanupPreventRecreate - delete resources that would recreate resources during the cleanup
@@ -115,6 +116,24 @@ func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 
 func cleanupApiResources(ctx spi.ComponentContext) {
 
+}
+
+// cleanupNamespaces - Implement the portion of the rancher-cleanup script that deletes namespaces
+func cleanupNamespaces(ctx spi.ComponentContext) {
+	options := defaultDeleteOptions()
+
+	// Cattle namespaces
+	options.NameFilter = []string{"local", "cattle-system", "cattle-impersonation-system", "cattle-global-data", "cattle-global-nt"}
+	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "", Resource: ""}, options)
+
+	// Tools namespaces
+	options.NameFilter = []string{"cattle-resources-system", "cis-operator-system", "cattle-dashboards", "cattle-gatekeeper-system", "cattle-alerting",
+		"cattle-logging", "cattle-pipeline", "cattle-prometheus", "rancher-operator-system", "cattle-monitoring-system", "cattle-logging-system"}
+	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "", Resource: ""}, options)
+
+	// Fleet namespaces
+	options.NameFilter = []string{"cattle-fleet-clusters-system", "cattle-fleet-local-system", "cattle-fleet-system", "fleet-default", "fleet-local", "fleet-system"}
+	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "", Resource: ""}, options)
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
