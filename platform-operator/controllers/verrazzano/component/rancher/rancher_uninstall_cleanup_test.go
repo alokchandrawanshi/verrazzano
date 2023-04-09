@@ -78,17 +78,17 @@ func Test_rancherUninstall(t *testing.T) {
 	}()
 
 	// Verify expected resources exist prior to the cleanup
-	verifyResources(t, ctx, fakeDynamicClient, false)
+	verify(t, ctx, fakeDynamicClient, false)
 
 	// Call the function being tested
 	cleanupRancher(ctx)
 
 	// Verify expected resources do not exist after  the cleanup
-	verifyResources(t, ctx, fakeDynamicClient, true)
+	verify(t, ctx, fakeDynamicClient, true)
 }
 
-// verifyResources - verify expected counts of resources before and after the rancher cleanup
-func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, cleanupDone bool) {
+// verify - verify expected counts of resources before and after the rancher cleanup
+func verify(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, cleanupDone bool) {
 	var expectedLen = 1
 	if cleanupDone {
 		expectedLen = 0
@@ -102,28 +102,8 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
 
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "")
-	assert.NoError(t, err)
-	for _, item := range list.Items {
-		if cleanupDone {
-			assert.NotContains(t, item.GetName(), cattleNameFilter)
-			assert.NotContains(t, item.GetName(), webhookMonitorFilter)
-		} else {
-			assert.True(t, strings.Contains(item.GetName(), cattleNameFilter) || strings.Contains(item.GetName(), webhookMonitorFilter))
-		}
-	}
-
-	list, err = listResource(ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "")
-	assert.NoError(t, err)
-	for _, item := range list.Items {
-		if cleanupDone {
-			assert.NotContains(t, item.GetName(), cattleNameFilter)
-			assert.NotContains(t, item.GetName(), webhookMonitorFilter)
-		} else {
-			assert.True(t, strings.Contains(item.GetName(), cattleNameFilter) || strings.Contains(item.GetName(), webhookMonitorFilter))
-		}
-	}
-
+	verifyResources(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", expectedLen)
+	verifyResources(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, normanSelector, expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, normanSelector, expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding2=true", expectedLen)
@@ -152,6 +132,18 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace5=true", expectedLen)
 }
 
+func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, gvr schema.GroupVersionResource, labelSelector string, expectedLen int) {
+	list, err := listResource(ctx, fakeDynamicClient, gvr, labelSelector)
+	assert.NoError(t, err)
+	for _, item := range list.Items {
+		if expectedLen == 0 {
+			assert.NotContains(t, item.GetName(), cattleNameFilter)
+			assert.NotContains(t, item.GetName(), webhookMonitorFilter)
+		} else {
+			assert.True(t, strings.Contains(item.GetName(), cattleNameFilter) || strings.Contains(item.GetName(), webhookMonitorFilter))
+		}
+	}
+}
 func verifyResource(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, gvr schema.GroupVersionResource, labelSelector string, expectedLen int) {
 	list, err := listResource(ctx, fakeDynamicClient, gvr, labelSelector)
 	assert.NoError(t, err)
