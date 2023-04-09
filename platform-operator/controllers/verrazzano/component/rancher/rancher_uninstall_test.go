@@ -33,12 +33,12 @@ import (
 
 var nonRanNSName = "local-not-rancher"
 var rancherNSName = "local"
-var nonRancherNs v1.Namespace = v1.Namespace{
+var nonRancherNs = v1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: nonRanNSName,
 	},
 }
-var rancherNs v1.Namespace = v1.Namespace{
+var rancherNs = v1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: rancherNSName,
 	},
@@ -704,8 +704,8 @@ func TestDeleteRancherFinalizers(t *testing.T) {
 	vz := v1alpha1.Verrazzano{}
 
 	// Namespaces
-	ns1 := newNamespace(constants2.KeycloakNamespace)
-	ns2 := newNamespace(constants2.VerrazzanoSystemNamespace)
+	ns1 := newNamespace(constants2.KeycloakNamespace, map[string]string{})
+	ns2 := newNamespace(constants2.VerrazzanoSystemNamespace, map[string]string{})
 
 	// ClusterRole that contains Rancher finalizers
 	cr1 := newClusterRole("cr1", map[string]string{}, []string{"test", "test.cattle.io"})
@@ -755,10 +755,11 @@ func TestDeleteRancherFinalizers(t *testing.T) {
 	}
 }
 
-func newNamespace(name string) *v1.Namespace {
+func newNamespace(name string, labels map[string]string) *v1.Namespace {
 	return &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:   name,
+			Labels: labels,
 		},
 	}
 }

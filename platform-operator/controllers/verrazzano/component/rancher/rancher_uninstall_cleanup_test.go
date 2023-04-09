@@ -27,7 +27,11 @@ import (
 
 var (
 	emptyFinalizer                  []string
-	namespace1                      = newNamespace("foo")
+	namespace1                      = newNamespace("local", map[string]string{"namespace1": "true"})
+	namespace2                      = newNamespace("cattle-system", map[string]string{"namespace2": "true"})
+	namespace3                      = newNamespace("cattle-impersonation-system", map[string]string{"namespace3": "true"})
+	namespace4                      = newNamespace("cattle-global-data", map[string]string{"namespace4": "true"})
+	namespace5                      = newNamespace("cattle-global-nt", map[string]string{"namespace5": "true"})
 	deployment                      = newDeployment(common.CattleSystem, common.RancherName)
 	daemonSet                       = newDaemonSet(common.CattleSystem, common.RancherName)
 	mutatingWebhookConfiguration    = newMutatingWebhookConfiguration(fmt.Sprintf("rancher.%s", cattleNameFilter))
@@ -57,8 +61,8 @@ var (
 	podSecurityPolicy9              = newPodSecurityPolicy("podSecurityPolicy9", map[string]string{"app.kubernetes.io/name": "rancher-backup", "podSecurityPolicy9": "true"})
 )
 
-// Test_cleanupPreventRecreate - test the cleanupPreventRecreate function
-func Test_cleanupPreventRecreate(t *testing.T) {
+// Test_rancherUninstall - test the uninstall of Rancher
+func Test_rancherUninstall(t *testing.T) {
 	// Create fake client and context
 	client := fake.NewClientBuilder().WithScheme(getSchemeForCleanup()).Build()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
@@ -141,6 +145,11 @@ func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient d
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy7=true", expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy8=true", expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, "podSecurityPolicy9=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace1=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace2=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace3=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace4=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace5=true", expectedLen)
 }
 
 func verifyResource(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, gvr schema.GroupVersionResource, labelSelector string, expectedLen int) {
@@ -161,12 +170,12 @@ func getSchemeForCleanup() *runtime.Scheme {
 
 func newClusterCleanupRepoResources() []runtime.Object {
 	return []runtime.Object{deployment, daemonSet, mutatingWebhookConfiguration, validatingWebhookConfiguration,
-		namespace1,
 		mutatingWebhookConfiguration2, validatingWebhookConfiguration2, clusterRoleBinding1, clusterRole1,
 		clusterRole2, clusterRoleBinding2, clusterRole3, clusterRoleBinding3, clusterRole4, clusterRoleBinding4,
 		clusterRole5, clusterRoleBinding5, clusterRole6, clusterRoleBinding6,
 		podSecurityPolicy1, podSecurityPolicy2, podSecurityPolicy3, podSecurityPolicy4, podSecurityPolicy5,
-		podSecurityPolicy6, podSecurityPolicy7, podSecurityPolicy8, podSecurityPolicy9}
+		podSecurityPolicy6, podSecurityPolicy7, podSecurityPolicy8, podSecurityPolicy9,
+		namespace1, namespace2, namespace3, namespace4, namespace5}
 }
 
 func newDeployment(namespace string, name string) *appsv1.Deployment {

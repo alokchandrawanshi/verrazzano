@@ -124,16 +124,16 @@ func cleanupNamespaces(ctx spi.ComponentContext) {
 
 	// Cattle namespaces
 	options.NameFilter = []string{"local", "cattle-system", "cattle-impersonation-system", "cattle-global-data", "cattle-global-nt"}
-	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "", Resource: ""}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, options)
 
 	// Tools namespaces
 	options.NameFilter = []string{"cattle-resources-system", "cis-operator-system", "cattle-dashboards", "cattle-gatekeeper-system", "cattle-alerting",
 		"cattle-logging", "cattle-pipeline", "cattle-prometheus", "rancher-operator-system", "cattle-monitoring-system", "cattle-logging-system"}
-	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "", Resource: ""}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, options)
 
 	// Fleet namespaces
 	options.NameFilter = []string{"cattle-fleet-clusters-system", "cattle-fleet-local-system", "cattle-fleet-system", "fleet-default", "fleet-local", "fleet-system"}
-	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "", Resource: ""}, options)
+	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, options)
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed
