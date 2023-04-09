@@ -119,8 +119,8 @@ func verify(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.In
 	assert.NoError(t, err)
 	assert.Equal(t, expectedLen, len(list.Items))
 
-	verifyResources(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, "", expectedLen)
-	verifyResources(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, "", expectedLen)
+	verifyResources(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "mutatingwebhookconfigurations"}, []string{cattleNameFilter, webhookMonitorFilter}, expectedLen)
+	verifyResources(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "admissionregistration.k8s.io", Version: "v1", Resource: "validatingwebhookconfigurations"}, []string{cattleNameFilter, webhookMonitorFilter}, expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, normanSelector, expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"}, normanSelector, expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"}, "clusterRoleBinding2=true", expectedLen)
@@ -166,15 +166,23 @@ func verify(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.In
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace22=true", expectedLen)
 }
 
-func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, gvr schema.GroupVersionResource, labelSelector string, expectedLen int) {
-	list, err := listResource(ctx, fakeDynamicClient, gvr, labelSelector)
+func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, gvr schema.GroupVersionResource, nameFilter []string, expectedLen int) {
+	list, err := listResource(ctx, fakeDynamicClient, gvr, "")
 	assert.NoError(t, err)
 	for _, item := range list.Items {
 		if expectedLen == 0 {
-			assert.NotContains(t, item.GetName(), cattleNameFilter)
-			assert.NotContains(t, item.GetName(), webhookMonitorFilter)
+			for _, name := range nameFilter {
+				assert.NotContains(t, item.GetName(), name)
+			}
 		} else {
-			assert.True(t, strings.Contains(item.GetName(), cattleNameFilter) || strings.Contains(item.GetName(), webhookMonitorFilter))
+			found := false
+			for _, name := range nameFilter {
+				if strings.Contains(item.GetName(), name) {
+					found = true
+					break
+				}
+			}
+			assert.True(t, found)
 		}
 	}
 }
