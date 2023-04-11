@@ -82,7 +82,6 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         TARGET_UPGRADE_VERSION = "current_branch"
-        TEST_BOOL="true"
     }
 
     stages {
@@ -147,7 +146,7 @@ pipeline {
                 }
             }
         }
-
+    
         stage ('Upgrade every release to next Minor Release') {
             parallel {
                 stage('Compute required N Upgrade Jobs') {
@@ -362,17 +361,14 @@ List extractReleaseTags(final String fileContent) {
 
 def getStageOfUpgradeJob(job) {
     return {
-        stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
-            script {
-
-                try{
-                    if (TEST_BOOL){
+        stage("Upgrade Verrazzano from version ${TARGET_UPGRADE_VERSION} to master"){
+                   try{
                         echo "Running upgrade job from version current branch to master"
                         retry(count: JOB_PROMOTION_RETRIES) {
                             def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                             parameters: [
                                 string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
-                                string(name: 'VERSION_FOR_INSTALL', value: job[1]),
+                                string(name: 'VERSION_FOR_INSTALL', value: ${TARGET_UPGRADE_VERSION}),
                                 string(name: 'VERSION_FOR_UPGRADE', value: "master"),
                                 string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                 string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
@@ -384,14 +380,15 @@ def getStageOfUpgradeJob(job) {
                                 string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
                             ],  wait: true, propagate: true
                         }
-                        TEST_BOOL="false"
-                    }
                 }catch(err){
                     catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
                         echo "Caught: ${err}"
                         sh "exit 1"
                     }
                 }
+        }
+        stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
+            script {
                 try {
                     echo "Running upgrade job from version ${job[0]} to ${job[1].replace('_', " ")}"
                     retry(count: JOB_PROMOTION_RETRIES) {
