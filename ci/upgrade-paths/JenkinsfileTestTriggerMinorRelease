@@ -195,12 +195,10 @@ pipeline {
                         sleep 5
                     }
                     //parallel upgradeJobsStageMapping
-
-                    // running the upgrade from current to master in parallel with the other upgrade jobs
-                    upgradeFromCurrentBranchToMaster()
                      }
                    }
                 }
+                upgradeFromCurrentBranchToMaster()
             }
         }
     }
@@ -405,7 +403,7 @@ def upgradeFromCurrentBranchToMaster(){
                         def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                         parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
-                                    string(name: 'VERSION_FOR_INSTALL', value: ${TARGET_UPGRADE_VERSION} ),
+                                    string(name: 'VERSION_FOR_INSTALL', value: ${CLEAN_BRANCH_NAME} ),
                                     string(name: 'VERSION_FOR_UPGRADE', value: "master"),
                                     string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                     string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
