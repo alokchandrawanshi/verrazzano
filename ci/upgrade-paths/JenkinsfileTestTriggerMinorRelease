@@ -366,7 +366,7 @@ def getStageOfUpgradeJob(job) {
             script {
 
                 try{
-                    if TEST_BOOL{
+                    if (TEST_BOOL){
                         echo "Running upgrade job from version current branch to master"
                         retry(count: JOB_PROMOTION_RETRIES) {
                             def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
