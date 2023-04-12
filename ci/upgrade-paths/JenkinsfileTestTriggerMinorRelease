@@ -148,6 +148,7 @@ pipeline {
         }
 
           stage('Upgrade Verrazzano from version current branch to master'){
+            steps {
             script{
                 try{
                     echo "Running upgrade job from version current branch to master"
@@ -174,7 +175,7 @@ pipeline {
                         }
                     }
 
-                }
+                }}
             }
     
         stage ('Upgrade every release to next Minor Release') {
