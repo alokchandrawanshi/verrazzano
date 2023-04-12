@@ -279,6 +279,7 @@ func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
 		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
 		return false, err
 	}
+	Log(Info, fmt.Sprintf("---------all targets----------- %s", targets))
 	return verifyScrapePoolsHealthy(targets, scrapePools)
 }
 
