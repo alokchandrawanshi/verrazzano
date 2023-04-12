@@ -189,6 +189,8 @@ pipeline {
                             }
                     }
                     print mapOfJobsInBatches
+                    print "Upgrade Jobs Stage Mapping list: "
+                    print upgradeJobsStageMapping
                     for(batch in mapOfJobsInBatches){
                         parallel batch
                         sleep 5
@@ -365,8 +367,6 @@ def getStageOfUpgradeJob(job) {
         stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
             script {
                 try {
-                    echo "Job list: "
-                    echo ${job}
                     echo "Running upgrade job from version ${job[0]} to ${job[1].replace('_', " ")}"
                     retry(count: JOB_PROMOTION_RETRIES) {
                         def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
