@@ -149,7 +149,7 @@ pipeline {
     
         stage ('Upgrade every release to next Minor Release') {
             parallel {
-                   stage("Upgrade Verrazzano from version ${TARGET_UPGRADE_VERSION} to master"){
+                   stage('Upgrade Verrazzano from version current branch to master') {
             script{
                 try{
                     echo "Running upgrade job from version current branch to master"
