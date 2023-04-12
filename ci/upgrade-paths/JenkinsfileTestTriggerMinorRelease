@@ -177,8 +177,8 @@ pipeline {
                         def k = 0
                         def  mapOfJobsInBatches = []
                         upgradeJobsStageMapping = [:]
-                        upgradeJobsStageMapping.put("current_branch","master")
-                        print upgradeJobsStageMapping
+                        // upgradeJobsStageMapping.put("current_branch","master")
+                        // print upgradeJobsStageMapping
                         for(int i=0;i<listOfUpgradeJobs.size();i++){
                             if(k<NJObs){
                                 upgradeJobsStageMapping.put(listOfUpgradeJobs.get(i),getStageOfUpgradeJob(listOfUpgradeJobs.get(i)))
@@ -196,6 +196,7 @@ pipeline {
                         sleep 5
                     }
                     //parallel upgradeJobsStageMapping
+                    upgradeFromCurrentBranchToMaster()
                      }
                    }
                 }
@@ -397,7 +398,8 @@ def getStageOfUpgradeJob(job) {
 
 def upgradeFromCurrentBranchToMaster(){
     return {
-        stage("Upgrade Verrazzano from version ${TARGET_UPGRADE_VERSION} to master"){
+        stage('Upgrade Verrazzano from version current_branch to master'){
+            steps{
             script{
                 try{
                     echo "Running upgrade job from version current branch to master"
@@ -405,7 +407,7 @@ def upgradeFromCurrentBranchToMaster(){
                         def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                         parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
-                                    string(name: 'VERSION_FOR_INSTALL', value: ${CLEAN_BRANCH_NAME} ),
+                                    string(name: 'VERSION_FOR_INSTALL', value: "current_branch" ),
                                     string(name: 'VERSION_FOR_UPGRADE', value: "master"),
                                     string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                     string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
@@ -425,6 +427,7 @@ def upgradeFromCurrentBranchToMaster(){
                     }
 
                 }
+            }
             }
     }
 }
