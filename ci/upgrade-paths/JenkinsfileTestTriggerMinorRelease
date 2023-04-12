@@ -365,10 +365,8 @@ def getStageOfUpgradeJob(job) {
         stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
             script {
                 try {
-                    echo "Job0: "
-                    echo job[0]
-                    echo "Job1: "
-                    echo job[1]
+                    echo "Job list: "
+                    echo ${job}
                     echo "Running upgrade job from version ${job[0]} to ${job[1].replace('_', " ")}"
                     retry(count: JOB_PROMOTION_RETRIES) {
                         def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
