@@ -146,38 +146,6 @@ pipeline {
                 }
             }
         }
-
-          stage('Upgrade Verrazzano from version current branch to master'){
-            steps {
-            script{
-                try{
-                    echo "Running upgrade job from version current branch to master"
-                    retry(count: JOB_PROMOTION_RETRIES) {
-                        def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
-                        parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
-                                    string(name: 'VERSION_FOR_INSTALL', value: ${CLEAN_BRANCH_NAME} ),
-                                    string(name: 'VERSION_FOR_UPGRADE', value: "master"),
-                                    string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
-                                    string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
-                                ],  wait: true, propagate: true
-                            }
-                    }catch(err){
-                        catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
-                            echo "Caught: ${err}"
-                            sh "exit 1"
-                        }
-                    }
-
-                }}
-            }
-    
         stage ('Upgrade every release to next Minor Release') {
             parallel {
                 stage('Compute required N Upgrade Jobs') {
@@ -202,6 +170,7 @@ pipeline {
                                 finalReleaseList.add(releaseTag)
                             }
                         }
+                        finalReleaseList.add(${TARGET_UPGRADE_VERSION})
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
@@ -397,6 +366,10 @@ def getStageOfUpgradeJob(job) {
         stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
             script {
                 try {
+                    echo "Job0: "
+                    echo job[0]
+                    echo "Job1: "
+                    echo job[1]
                     echo "Running upgrade job from version ${job[0]} to ${job[1].replace('_', " ")}"
                     retry(count: JOB_PROMOTION_RETRIES) {
                         def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
