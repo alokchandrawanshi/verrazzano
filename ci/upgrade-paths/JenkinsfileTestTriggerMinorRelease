@@ -170,7 +170,6 @@ pipeline {
                                 finalReleaseList.add(releaseTag)
                             }
                         }
-                        finalReleaseList.add(${TARGET_UPGRADE_VERSION})
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
