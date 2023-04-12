@@ -114,7 +114,10 @@ func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
 }
 
+// cleanupApiResources - Implement the portion of the rancher-cleanup script that deletes API Resources
 func cleanupApiResources(ctx spi.ComponentContext) {
+	options := defaultDeleteOptions()
+	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
 
 }
 
