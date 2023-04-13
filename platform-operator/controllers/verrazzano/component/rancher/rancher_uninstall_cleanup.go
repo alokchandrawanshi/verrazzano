@@ -117,8 +117,9 @@ func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 // cleanupApiResources - Implement the portion of the rancher-cleanup script that deletes API Resources
 func cleanupApiResources(ctx spi.ComponentContext) {
 	options := defaultDeleteOptions()
-	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
-
+	options.NameFilter = []string{"cattle.io"}
+	options.NameMatchType = Contains
+	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "", Resource: ""}, options)
 }
 
 // cleanupNamespaces - Implement the portion of the rancher-cleanup script that deletes namespaces
