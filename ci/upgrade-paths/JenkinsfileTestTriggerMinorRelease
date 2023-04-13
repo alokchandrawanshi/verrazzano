@@ -150,6 +150,10 @@ pipeline {
         stage ('Upgrade every release to next Minor Release') {
             parallel {
                 stage('Upgrade Verrazzano from version current_branch to master'){
+                    when {
+                        not {
+                            branch 'master'
+                        }
                     steps{
                         script{
                             try{
@@ -178,6 +182,7 @@ pipeline {
                                 }
                         }
                     }
+                }
                 }
                 stage('Compute required N Upgrade Jobs') {
                 steps {

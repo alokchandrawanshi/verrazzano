@@ -895,7 +895,7 @@ def getVerrazzanoOperatorYaml() {
             if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                 echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
                 wget "${OPERATOR_YAML_FILE}" -O "${WORKSPACE}"/downloaded-release-operator.yaml
-                if [ $? != 0 ]; then
+                if [ "\$\?" != 0 ]; then
                     echo "Unable to download ${OPERATOR_YAML_FILE}"
                     echo "Trying to download from object storage . . ."
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-release-operator.yaml
