@@ -894,7 +894,7 @@ def getVerrazzanoOperatorYaml() {
             cd ${GO_REPO_PATH}/verrazzano
             if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                 echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
-                wget ${OPERATOR_YAML_FILE} -O ${WORKSPACE}/downloaded-release-operator.yaml
+                wget "${OPERATOR_YAML_FILE}" -O "${WORKSPACE}"/downloaded-release-operator.yaml
                 if [ $? != 0 ]; then
                     echo "Unable to download ${OPERATOR_YAML_FILE}"
                     echo "Trying to download from object storage . . ."
