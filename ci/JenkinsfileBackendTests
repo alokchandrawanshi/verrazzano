@@ -624,4 +624,3 @@ def getLatestReleaseVersion() {
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
 }
-
