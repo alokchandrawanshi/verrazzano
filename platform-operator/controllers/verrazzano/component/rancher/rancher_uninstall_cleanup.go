@@ -7,6 +7,8 @@ import (
 	"context"
 	"strings"
 
+	"k8s.io/client-go/discovery"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -116,10 +118,40 @@ func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 
 // cleanupApiResources - Implement the portion of the rancher-cleanup script that deletes API Resources
 func cleanupApiResources(ctx spi.ComponentContext) {
-	options := defaultDeleteOptions()
-	options.NameFilter = []string{"cattle.io"}
-	options.NameMatchType = Contains
-	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "", Resource: ""}, options)
+
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return
+	}
+	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return
+	}
+	lists, err := disco.ServerPreferredResources()
+	if err != nil {
+		return
+	}
+	for _, list := range lists {
+		for _, resource := range list.APIResources {
+			// Skip namespaced resources
+			if resource.Namespaced {
+				continue
+			}
+
+			// Skip resources that do not support delete verb
+			if len(resource.Verbs) == 0 {
+				continue
+			}
+			if !strings.Contains(resource.Verbs.String(), "delete") {
+				continue
+			}
+
+			// Create a list of all resources that match the delete filter
+			if strings.Contains(resource.Name, cattleNameFilter) {
+				ctx.Log().Infof("Resource type %s/%s/%s with name %s should be deleted", resource.Group, resource.Version, resource.Kind, resource.Name)
+			}
+		}
+	}
 }
 
 // cleanupNamespaces - Implement the portion of the rancher-cleanup script that deletes namespaces
