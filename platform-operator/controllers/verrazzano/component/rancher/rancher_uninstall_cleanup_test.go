@@ -98,7 +98,11 @@ func Test_rancherUninstall(t *testing.T) {
 	verify(t, ctx, fakeDynamicClient, false)
 
 	// Call the function being tested
-	cleanupRancher(ctx)
+	cleanupPreventRecreate(ctx)
+	cleanupWebhooks(ctx)
+	cleanupClusterRolesAndBindings(ctx)
+	cleanupPodSecurityPolicies(ctx)
+	cleanupNamespaces(ctx)
 
 	// Verify expected resources do not exist after  the cleanup
 	verify(t, ctx, fakeDynamicClient, true)
