@@ -13,6 +13,8 @@ import (
 // WHEN with a directory to scan
 // THEN the scan results are as expected
 func TestRunScan(t *testing.T) {
+	unitTesting = true
+	defer func() { unitTesting = false }()
 	verbose = true
 	ec := runScan([]string{"test"})
 	assert.Equal(t, 1, ec)
