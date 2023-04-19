@@ -152,10 +152,12 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 		rancherFinalizersDeleted = true
 	}
 
-	// Run the rancher-cleanup job
-	if err := runCleanupJob(ctx); err != nil {
-		return err
-	}
+	cleanupRancher(ctx)
+
+	//// Run the rancher-cleanup job
+	//if err := runCleanupJob(ctx); err != nil {
+	//	return err
+	//}
 
 	// Remove the Rancher webhooks
 	err = deleteWebhooks(ctx)
@@ -200,7 +202,7 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	removeCRDFinalizers(ctx, crds)
 
 	// Delete the rancher-cleanup job
-	deleteCleanupJob(ctx)
+	//deleteCleanupJob(ctx)
 
 	return nil
 }
