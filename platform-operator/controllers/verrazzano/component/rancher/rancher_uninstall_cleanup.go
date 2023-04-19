@@ -170,6 +170,11 @@ func cleanupNamespaces(ctx spi.ComponentContext) {
 	// Fleet namespaces
 	options.NameFilter = []string{"cattle-fleet-clusters-system", "cattle-fleet-local-system", "cattle-fleet-system", "fleet-default", "fleet-local", "fleet-system"}
 	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, options)
+
+	// Prefixed namespaces
+	options.NameFilter = []string{"cluster-fleet", "p-", "c-", "user-"}
+	options.NameMatchType = HasPrefix
+	deleteResources(ctx, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, options)
 }
 
 // deleteResources - Delete all instances of a resource that meet the filters passed

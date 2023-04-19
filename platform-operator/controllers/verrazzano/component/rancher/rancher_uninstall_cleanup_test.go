@@ -49,6 +49,10 @@ var (
 	namespace20                     = newNamespace("fleet-default", map[string]string{"namespace20": "true"})
 	namespace21                     = newNamespace("fleet-local", map[string]string{"namespace21": "true"})
 	namespace22                     = newNamespace("fleet-system", map[string]string{"namespace22": "true"})
+	namespace23                     = newNamespace("cluster-fleet", map[string]string{"namespace23": "true"})
+	namespace24                     = newNamespace("c-test", map[string]string{"namespace24": "true"})
+	namespace25                     = newNamespace("p-test", map[string]string{"namespace25": "true"})
+	namespace26                     = newNamespace("user-test", map[string]string{"namespace26": "true"})
 	deployment                      = newDeployment(common.CattleSystem, common.RancherName)
 	daemonSet                       = newDaemonSet(common.CattleSystem, common.RancherName)
 	mutatingWebhookConfiguration    = newMutatingWebhookConfiguration(fmt.Sprintf("rancher.%s", cattleNameFilter))
@@ -168,6 +172,10 @@ func verify(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.In
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace20=true", expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace21=true", expectedLen)
 	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace22=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace23=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace24=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace25=true", expectedLen)
+	verifyResource(t, ctx, fakeDynamicClient, schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "namespace26=true", expectedLen)
 }
 
 func verifyResources(t *testing.T, ctx spi.ComponentContext, fakeDynamicClient dynamic.Interface, gvr schema.GroupVersionResource, nameFilter []string, expectedLen int) {
@@ -215,7 +223,7 @@ func newClusterCleanupRepoResources() []runtime.Object {
 		podSecurityPolicy6, podSecurityPolicy7, podSecurityPolicy8, podSecurityPolicy9,
 		namespace1, namespace2, namespace3, namespace4, namespace5, namespace6, namespace7, namespace8, namespace9,
 		namespace10, namespace11, namespace12, namespace13, namespace14, namespace15, namespace16, namespace17, namespace18, namespace19,
-		namespace20, namespace21, namespace22}
+		namespace20, namespace21, namespace22, namespace23, namespace24, namespace25, namespace26}
 }
 
 func newDeployment(namespace string, name string) *appsv1.Deployment {
