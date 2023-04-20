@@ -56,6 +56,7 @@ func defaultDeleteOptions() deleteOptions {
 // cleanupRancher - perform the functions of the rancher-cleanup job
 func cleanupRancher(ctx spi.ComponentContext) {
 	cleanupPreventRecreate(ctx)
+	deleteRancherFinalizers(ctx)
 	cleanupWebhooks(ctx)
 	cleanupClusterRolesAndBindings(ctx)
 	cleanupPodSecurityPolicies(ctx)
