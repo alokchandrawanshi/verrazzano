@@ -123,9 +123,6 @@ func (c fluentdComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c fluentdComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// Do not allow disabling active components
-	if err := c.checkEnabled(old, new); err != nil {
-		return err
-	}
 	if err := validateFluentd(new); err != nil {
 		return err
 	}
