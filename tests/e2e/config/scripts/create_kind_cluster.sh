@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 set -x
@@ -26,7 +26,7 @@ create_kind_cluster() {
   elif [ "${K8S_VERSION}" == "1.23" ]; then
     KIND_IMAGE="v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae"
   elif [ "${K8S_VERSION}" == "1.24" ]; then
-    KIND_IMAGE="v1.24.0@sha256:0866296e693efe1fed79d5e6c7af8df71fc73ae45e3679af05342239cdc5bc8e"
+    KIND_IMAGE="ghcr.io/verrazzano/kind:v1.24.10-20230501225451-bd4d75ca"
   else
     echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
     exit 1
@@ -76,7 +76,7 @@ create_kind_cluster() {
     echo "  - role: worker" >> ${KIND_CONFIG_FILE}
     echo "    image: kindest/node:KIND_IMAGE" >> ${KIND_CONFIG_FILE}
   done
-  sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
+  sed -i "s|KIND_IMAGE|${KIND_IMAGE}|g" ${KIND_CONFIG_FILE}
   cat ${KIND_CONFIG_FILE}
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}
