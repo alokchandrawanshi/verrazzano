@@ -11,6 +11,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,6 +48,19 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 		addAcmeIngressAnnotations(vz.Spec.EnvironmentName, dnsSuffix, ingress)
 	} else {
 		addCAIngressAnnotations(vz.Spec.EnvironmentName, dnsSuffix, ingress)
+	}
+	_, ok := ingress.Annotations[nginxStreamSnippetAnnotation]
+	if !ok {
+		// get svc cluster IP
+		rancherSvc := &v1.Service{}
+		err := c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, rancherSvc)
+		if err != nil {
+			return err
+		} else {
+			ingress.Annotations[nginxStreamSnippetAnnotation] = fmt.Sprintf(streamSnippet, rancherSvc.Spec.ClusterIP)
+		}
+	} else {
+		delete(ingress.Annotations, nginxStreamSnippetAnnotation)
 	}
 	return c.Patch(context.TODO(), ingress, ingressMerge)
 }

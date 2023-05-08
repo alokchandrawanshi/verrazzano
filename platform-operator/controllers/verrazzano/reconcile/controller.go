@@ -9,15 +9,16 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"io"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	"io"
 	kblabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -866,11 +867,6 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 		return err
 	}
 
-	log.Debugf("Watching for the Rancher endpoints to re-reconcile Rancher")
-	if err := r.watchRancherEndpoints(namespace, name); err != nil {
-		return err
-	}
-
 	log.Debugf("Watching the Rancher global data namespace to create admin cloud credential")
 	return r.watchRancherGlobalDataNamespace(namespace, name)
 }
@@ -905,22 +901,6 @@ func (r *Reconciler) watchThanosInternalUserSecret(namespace string, name string
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				return r.isThanosInternalUserSecret(e.ObjectNew)
-			},
-		},
-	)
-}
-
-func (r *Reconciler) watchRancherEndpoints(namespace string, name string) error {
-	return r.Controller.Watch(
-		&source.Kind{Type: &corev1.Endpoints{}},
-		createReconcileEventHandler(namespace, name),
-		// Reconcile if there is an event related to the endpoints
-		predicate.Funcs{
-			CreateFunc: func(e event.CreateEvent) bool {
-				return r.isRancherEndpoints(e.Object)
-			},
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				return r.isRancherEndpoints(e.ObjectNew)
 			},
 		},
 	)
@@ -966,15 +946,6 @@ func (r *Reconciler) isThanosInternalUserSecret(o client.Object) bool {
 		return false
 	}
 	r.AddWatch(keycloak.ComponentJSONName)
-	return true
-}
-
-func (r *Reconciler) isRancherEndpoints(o client.Object) bool {
-	endpoints := o.(*corev1.Endpoints)
-	if endpoints.Namespace != rancher.ComponentNamespace || endpoints.Name != rancher.ComponentName {
-		return false
-	}
-	r.AddWatch(rancher.ComponentJSONName)
 	return true
 }
 
