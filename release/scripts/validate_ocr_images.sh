@@ -13,8 +13,8 @@ echo "$OCR_CREDS_PSW" | crane auth login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --pa
 
 while IFS= read -r line
 do  
-    VZ_IMAGE_NAME=$(echo "$line")
-    crane manifest "$DOCKER_REPO/$VZ_IMAGE_NAME"
+    VZ_IMAGE_NAME=$(echo "$line" | grep "verrazzano/" | sed s/"ghcr.io"// | cut -f1 -d":")
+    crane manifest "$DOCKER_REPO/$VZ_IMAGE_NAME:latest"
     if [[ $? -eq 0 ]]; then
         IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     else
