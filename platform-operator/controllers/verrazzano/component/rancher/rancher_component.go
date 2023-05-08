@@ -75,6 +75,7 @@ const nginxExtraAnnotations = "ingress.extraAnnotations"
 const nginxStreamSnippetAnnotation = "nginx.ingress.kubernetes.io/stream-snippet"
 
 const streamSnippet = `
+stream {
     upstream rancher_stream_servers_http {
         least_conn;
         server %[1]s.%[2]s.svc.cluster.local:80 max_fails=3 fail_timeout=5s;
@@ -91,6 +92,7 @@ const streamSnippet = `
         listen 443;
         proxy_pass rancher_stream_servers_https;
     }
+}
 `
 
 // Environment variables for the Rancher images
