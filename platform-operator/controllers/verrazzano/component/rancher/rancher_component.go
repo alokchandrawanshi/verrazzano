@@ -28,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,11 +75,12 @@ const nginxExtraAnnotations = "ingress.extraAnnotations"
 
 const nginxStreamSnippetAnnotation = "nginx.ingress.kubernetes.io/stream-snippet"
 
-const streamSnippet = `
-stream {
+const streamSnippetServerEntry = "        server %s:%s max_fails=3 fail_timeout=5s;\n"
+
+const streamSnippet = `|
     upstream rancher_stream_servers_http {
         least_conn;
-        server %[1]s.%[2]s.svc.cluster.local:80 max_fails=3 fail_timeout=5s;
+%s
     }
     server {
         listen 80;
@@ -86,13 +88,12 @@ stream {
     }
     upstream rancher_stream_servers_https {
         least_conn;
-        server %[1]s.%[2]s.svc.cluster.local:443 max_fails=3 fail_timeout=5s;
+%s
     }
     server {
-        listen 443;
+        listen 444;
         proxy_pass rancher_stream_servers_https;
     }
-}
 `
 
 // Environment variables for the Rancher images
@@ -240,12 +241,31 @@ func appendStreamingOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]b
 	// see if ingress already contains the streaming annotation
 	_, ok := ingress.Annotations[nginxStreamSnippetAnnotation]
 	if !ok {
-		ctx.Log().Debug("Adding the stream snippet annotation")
-		kvs = append(kvs, bom.KeyValue{
-			Key:       rancherStreamSnippetAnnotation,
-			Value:     fmt.Sprintf(streamSnippet, ComponentName, ComponentNamespace),
-			SetString: true,
-		})
+		// check to see if the rancher endpoints exist
+		rancherEP := &v1.Endpoints{}
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, rancherEP)
+		if err != nil {
+			if kerrs.IsNotFound(err) {
+				ctx.Log().Debug("Rancher endpoints not available.  Will retry")
+			} else {
+				return kvs, err
+			}
+		} else {
+			ctx.Log().Debug("Adding the stream snippet annotation")
+			var httpServer strings.Builder
+			var httpsServer strings.Builder
+			for _, endpointSubset := range rancherEP.Subsets {
+				for _, address := range endpointSubset.Addresses {
+					httpServer.WriteString(fmt.Sprintf(streamSnippetServerEntry, address.IP, "80"))
+					httpsServer.WriteString(fmt.Sprintf(streamSnippetServerEntry, address.IP, "444"))
+				}
+			}
+			kvs = append(kvs, bom.KeyValue{
+				Key:       rancherStreamSnippetAnnotation,
+				Value:     fmt.Sprintf(streamSnippet, httpServer.String(), httpsServer.String()),
+				SetString: true,
+			})
+		}
 	} else {
 		kvs = append(kvs, bom.KeyValue{
 			Key:       nginxExtraAnnotations,
@@ -618,7 +638,14 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // Reconcile for the Rancher component
 func (r rancherComponent) Reconcile(ctx spi.ComponentContext) error {
-	return nil
+	installed, err := r.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		err = r.Install(ctx)
+	}
+	return err
 }
 
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
