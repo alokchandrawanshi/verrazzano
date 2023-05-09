@@ -24,15 +24,13 @@ import (
 )
 
 const (
-	webhookName                  = "rancher.cattle.io"
-	controllerCMName             = "cattle-controllers"
-	lockCMName                   = "rancher-controller-lock"
-	rancherSysNS                 = "management.cattle.io/system-namespace"
-	rancherCleanupImage          = "rancher-cleanup"
-	defaultRancherCleanupJobYaml = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
-	rancherCleanupJobName        = "cleanup-job"
-	rancherCleanupJobNamespace   = constants.VerrazzanoInstallNamespace
-	finalizerSubString           = ".cattle.io"
+	webhookName                = "rancher.cattle.io"
+	controllerCMName           = "cattle-controllers"
+	lockCMName                 = "rancher-controller-lock"
+	rancherSysNS               = "management.cattle.io/system-namespace"
+	rancherCleanupJobName      = "cleanup-job"
+	rancherCleanupJobNamespace = constants.VerrazzanoInstallNamespace
+	finalizerSubString         = ".cattle.io"
 )
 
 var rancherSystemNS = []string{
@@ -65,19 +63,6 @@ var forkPostUninstallFunc forkPostUninstallFuncSig = forkPostUninstall
 type postUninstallFuncSig func(ctx spi.ComponentContext) error
 
 var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
-
-var rancherCleanupJobYamlPath = defaultRancherCleanupJobYaml
-
-// getCleanupJobYamlPath - get the path to the yaml to create the cleanup job
-func getCleanupJobYamlPath() string {
-	return rancherCleanupJobYamlPath
-}
-
-// setCleanupJobYamlPath - set the path to the yaml for creating the cleanup job.
-// Required for by unit tests.
-func setCleanupJobYamlPath(path string) {
-	rancherCleanupJobYamlPath = path
-}
 
 // preUninstall - prepare for Rancher uninstall
 func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
