@@ -60,7 +60,7 @@ func cleanupRancher(ctx spi.ComponentContext) {
 	cleanupWebhooks(ctx)
 	cleanupClusterRolesAndBindings(ctx)
 	cleanupPodSecurityPolicies(ctx)
-	cleanupApiResources(ctx)
+	cleanupAPIResources(ctx)
 	cleanupNamespaces(ctx)
 }
 
@@ -117,8 +117,8 @@ func cleanupPodSecurityPolicies(ctx spi.ComponentContext) {
 	deleteResources(ctx, schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "podsecuritypolicies"}, options)
 }
 
-// cleanupApiResources - Implement the portion of the rancher-cleanup script that deletes API Resources
-func cleanupApiResources(ctx spi.ComponentContext) {
+// cleanupAPIResources - Implement the portion of the rancher-cleanup script that deletes API Resources
+func cleanupAPIResources(ctx spi.ComponentContext) {
 
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {

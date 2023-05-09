@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	fakemonitor "github.com/verrazzano/verrazzano/platform-operator/internal/monitor/fake"
 	admv1 "k8s.io/api/admissionregistration/v1"
@@ -672,36 +671,6 @@ func TestIsRancherNamespace(t *testing.T) {
 			Name: "p-12345",
 		},
 	}))
-}
-
-// TestCleanupJob tests the creation and deletion of the rancher-cleanup job
-// GIVEN a call to runCleanupJob
-// WHEN no cleanup job exists
-// THEN expect a cleanup job to be created
-// GIVEN a call to deleteCleanupJob
-// WHEN a job already exists
-// THEN expect the job to be deleted
-func TestCleanupJob(t *testing.T) {
-	a := assert.New(t)
-	vz := v1alpha1.Verrazzano{}
-
-	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
-	ctx := spi.NewFakeContext(c, &vz, nil, false)
-	config.SetDefaultBomFilePath("../../../../verrazzano-bom.json")
-	setCleanupJobYamlPath("../../../../thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml")
-
-	// Expect the job to get created
-	err := runCleanupJob(ctx)
-	a.Error(err)
-	job := batchv1.Job{}
-	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
-	a.NoError(err)
-
-	// Expect the job to get deleted
-	deleteCleanupJob(ctx)
-	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
-	a.Error(err)
-	a.True(apierrors.IsNotFound(err))
 }
 
 // TestDeleteRancherFinalizers
