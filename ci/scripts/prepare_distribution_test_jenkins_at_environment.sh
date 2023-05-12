@@ -59,7 +59,6 @@ cd ${GO_REPO_PATH}/verrazzano
 
 echo "Create Image Pull Secrets"
 cd ${GO_REPO_PATH}/verrazzano
-./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}"
 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
 # Create docker secret for platform operator image
