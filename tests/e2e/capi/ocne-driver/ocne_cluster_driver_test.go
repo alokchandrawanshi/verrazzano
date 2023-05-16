@@ -143,7 +143,7 @@ type capiClusterData struct {
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	Skip("Temporarily skipping the test suite since the test suite is not passing/unstable")
+	//Skip("Temporarily skipping the test suite since the test suite is not passing/unstable")
 
 	//TODO oci get to check it's working
 
@@ -308,7 +308,7 @@ func createCluster(clusterName string) error {
 	}
 	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
 	if res != nil {
-		//t.Logs.Infof("create cluster response body: %s", res.String())
+		t.Logs.Infof("create cluster response body: %s", res.String())
 	}
 	if err != nil {
 		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
@@ -323,7 +323,7 @@ func IsClusterActive(clusterName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	//t.Logs.Infof("jsonBody: %s", jsonBody.String())
+	t.Logs.Infof("jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("State: %s", state)
 	return state == "active", nil
