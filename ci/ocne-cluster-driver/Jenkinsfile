@@ -496,7 +496,7 @@ def runGinkgo(testSuitePath) {
                 --workerNodeSubnet="${env.SUBNET_ID}" \
                 --controlPlaneSubnet="${env.SUBNET_ID}" \
                 --loadBalancerSubnet="${env.SUBNET_ID}" \
-                --waitTimeout="${env.WAIT_TIMEOUT.toInteger()}"
+                --waitTimeoutInput="${env.WAIT_TIMEOUT.toInteger()}"
         """
     }
 }

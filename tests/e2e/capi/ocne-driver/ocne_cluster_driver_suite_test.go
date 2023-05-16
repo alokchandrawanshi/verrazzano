@@ -21,7 +21,7 @@ var compartmentID string
 var workerNodeSubnet string
 var controlPlaneSubnet string
 var loadBalancerSubnet string
-var waitTimeout int
+var waitTimeoutInput int
 
 func init() {
 	flag.StringVar(&region, "region", "", "region represents the region where the CAPI cluster will be created")
@@ -35,7 +35,7 @@ func init() {
 	flag.StringVar(&workerNodeSubnet, "workerNodeSubnet", "", "workerNodeSubnet represents the worker node subnet")
 	flag.StringVar(&controlPlaneSubnet, "controlPlaneSubnet", "", "controlPlaneSubnet represents the control plane node subnet")
 	flag.StringVar(&loadBalancerSubnet, "loadBalancerSubnet", "", "loadBalancerSubnet represents the load balancer subnet")
-	flag.IntVar(&waitTimeout, "waitTimeout", 30, "wait timeout in test in minutes")
+	flag.IntVar(&waitTimeoutInput, "waitTimeoutInput", 30, "wait timeout in test in minutes")
 }
 
 func TestOCNEClusterDriver(test *testing.T) {

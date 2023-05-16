@@ -115,6 +115,7 @@ var (
 	httpClient        *retryablehttp.Client
 	rancherURL        string
 	cloudCredentialID string
+	waitTimeout       = time.Duration(waitTimeoutInput) * time.Minute
 )
 
 // cloudCredentialsData needed for template rendering
