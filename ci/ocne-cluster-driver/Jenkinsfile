@@ -70,6 +70,10 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
+        string (name: 'WAIT_TIMEOUT_ARG',
+                defaultValue: '30',
+                description: 'How long to wait for CAPI clusters to create/delete',
+                trim: true)
     }
 
     environment {
@@ -144,6 +148,8 @@ pipeline {
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
 
         OPERATOR_YAML_FILE = "${WORKSPACE}/acceptance-test-operator.yaml"
+
+        WAIT_TIMEOUT = "${params.WAIT_TIMEOUT_ARG}"
     }
 
     stages {
@@ -295,15 +301,6 @@ pipeline {
                 sh """
                     ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE_NIPIO} --manifests ${WORKSPACE}/acceptance-test-operator.yaml
                 """
-            }
-        }
-
-        stage("Dummy sleep") {
-            steps {
-                sh """
-                     echo "sleeping"
-                """
-                sleep(60)
             }
         }
 
@@ -498,7 +495,8 @@ def runGinkgo(testSuitePath) {
                 --nodePublicKeyPath="${TF_VAR_ssh_public_key_path}" \
                 --workerNodeSubnet="${env.SUBNET_ID}" \
                 --controlPlaneSubnet="${env.SUBNET_ID}" \
-                --loadBalancerSubnet="${env.SUBNET_ID}"
+                --loadBalancerSubnet="${env.SUBNET_ID}" \
+                --waitTimeout="${env.WAIT_TIMEOUT.toInteger()}"
         """
     }
 }

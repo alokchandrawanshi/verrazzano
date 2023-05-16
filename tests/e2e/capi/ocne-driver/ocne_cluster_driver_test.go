@@ -29,7 +29,6 @@ import (
 const (
 	shortWaitTimeout             = 5 * time.Minute
 	shortPollingInterval         = 10 * time.Second
-	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 30 * time.Second
 	clusterName                  = "strudel2"
 	createClusterPayloadTemplate = `{
