@@ -120,7 +120,7 @@ type capiClusterData struct {
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	Skip("Temporarily skipping the test suite since the test suite is not passing/unstable")
+	//Skip("Temporarily skipping the test suite since the test suite is not passing/unstable")
 
 	//TODO oci get to check it's working
 
