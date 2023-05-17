@@ -27,7 +27,7 @@ import (
 // nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
 const (
-	waitTimeout                  = 3 * time.Minute
+	waitTimeout                  = 10 * time.Minute
 	shortWaitTimeout             = 5 * time.Minute
 	shortPollingInterval         = 10 * time.Second
 	pollingInterval              = 30 * time.Second
