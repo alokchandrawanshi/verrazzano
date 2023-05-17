@@ -27,6 +27,7 @@ import (
 // nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
 const (
+	waitTimeout                  = 3 * time.Minute
 	shortWaitTimeout             = 5 * time.Minute
 	shortPollingInterval         = 10 * time.Second
 	pollingInterval              = 30 * time.Second
@@ -115,7 +116,6 @@ var (
 	httpClient        *retryablehttp.Client
 	rancherURL        string
 	cloudCredentialID string
-	waitTimeout       = time.Duration(waitTimeoutInput) * time.Minute
 )
 
 // cloudCredentialsData needed for template rendering
