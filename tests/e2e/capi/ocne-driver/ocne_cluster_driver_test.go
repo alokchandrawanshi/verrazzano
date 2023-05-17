@@ -27,7 +27,7 @@ import (
 // nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
 const (
-	waitTimeout                  = 10 * time.Minute
+	waitTimeout                  = 30 * time.Minute
 	shortWaitTimeout             = 5 * time.Minute
 	shortPollingInterval         = 10 * time.Second
 	pollingInterval              = 30 * time.Second
@@ -59,8 +59,8 @@ const (
 			"imageDisplayName": "Oracle-Linux-8.7-2023.04.25-0",
 			"imageId": "",
 			"installCalico": true,
-			"installCcm": true,
-			"installCsi": true,
+			"installCcm": false,
+			"installCsi": false,
 			"installVerrazzano": false,
 			"kubernetesVersion": "v1.24.8",
 			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
