@@ -2527,6 +2527,16 @@ spec:
         control-plane: controller-manager
     spec:
       containers:
+      - name: kube-rbac-proxy
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        args:
+        - "--secure-listen-address=0.0.0.0:8443"
+        - "--upstream=http://127.0.0.1:8080/"
+        - "--logtostderr=true"
+        - "--v=10"
+        ports:
+        - containerPort: 8443
+          name: https
       - args:
         - --leader-elect
         - --metrics-bind-addr=localhost:8080
@@ -2702,3 +2712,65 @@ webhooks:
     resources:
     - ocneconfigtemplates
   sideEffects: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: bootstrap-ocne
+  name: capi-ocne-bootstrap-metrics-service
+  namespace: capi-ocne-bootstrap-system
+spec:
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+  selector:
+    cluster.x-k8s.io/provider: bootstrap-ocne
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: bootstrap-ocne
+  name: capi-ocne-bootstrap-metrics-reader
+rules:
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: bootstrap-ocne
+  name: capi-ocne-bootstrap-proxy-role
+rules:
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: bootstrap-ocne
+  name: capi-ocne-bootstrap-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: capi-ocne-bootstrap-proxy-role
+subjects:
+  - kind: ServiceAccount
+    name: capi-ocne-bootstrap-manager
+    namespace: capi-ocne-bootstrap-system

@@ -14,6 +14,9 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoMonitoringNamespace is the namespace for monitoring components
 const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
 
+// VerrazzanoCAPINamespace is the system namespace for Cluster API resources
+const VerrazzanoCAPINamespace = "verrazzano-capi"
+
 // Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 

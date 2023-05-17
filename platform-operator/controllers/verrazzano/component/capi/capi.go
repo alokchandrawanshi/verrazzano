@@ -30,6 +30,10 @@ images:
     repository: {{.OCNEControlPlaneRepository}}
     tag: {{.OCNEControlPlaneTag}}
 
+  kube-rbac-proxy:
+    repository: gcr.io/kubebuilder
+    tag: v0.14.0
+
 providers:
   - name: "cluster-api"
     url: "/verrazzano/capi/cluster-api/{{.APIVersion}}/core-components.yaml"

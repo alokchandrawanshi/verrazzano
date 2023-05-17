@@ -553,6 +553,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args["nginxNamespace"] = nginxutil.IngressNGINXNamespace()
 	args["istioNamespace"] = constants.IstioSystemNamespace
 	args["installNamespace"] = constants.VerrazzanoInstallNamespace
+	args["capiNamespace"] = constants.VerrazzanoCAPINamespace
 
 	istio := ctx.EffectiveCR().Spec.Components.Istio
 	enabled := istio != nil && istio.IsInjectionEnabled()
