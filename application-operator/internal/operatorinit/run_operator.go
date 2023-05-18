@@ -142,6 +142,9 @@ func startMulticlusterReconcilers(mgr manager.Manager, agentChannel chan cluster
 
 func startReconcilers(mgr manager.Manager, defaultMetricsScraper string, log *zap.SugaredLogger) error {
 	logger, err := vzlog.BuildZapInfoLogger(0)
+	if err != nil {
+		return err
+	}
 	if err := (&ingresstrait.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    log,
