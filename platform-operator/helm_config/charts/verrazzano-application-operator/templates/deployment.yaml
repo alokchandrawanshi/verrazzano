@@ -46,7 +46,7 @@ spec:
               protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}
-            if {{ .Values.clusterAgentOnly }}
+            {{- if .Values.clusterAgentOnly }}
             - --run-app-operator=false
             - --run-webhooks=false
             - --run-webhook-init=false
