@@ -3,7 +3,7 @@
 #
 # OAM constructs expects a parent/child relationship, for example ContainerizedWorkload
 # For Native Kubernetes Kinds, this relationship is a sibling so a Deployment Workload encapsulates the Deployment Kind
-{{- if .Values.clusterAgentOnly }}
+{{- if !.Values.clusterAgentOnly }}
 apiVersion: core.oam.dev/v1alpha2
 kind: WorkloadDefinition
 metadata:
