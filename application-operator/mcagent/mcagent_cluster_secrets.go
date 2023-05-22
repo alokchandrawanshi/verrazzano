@@ -219,7 +219,7 @@ func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
 		Namespace: constants.VerrazzanoSystemNamespace,
 		Name:      constants.VerrazzanoIngressTLSSecret,
 	}, &localCASecret)
-	if err != nil {
+	if client.IgnoreNotFound(err) != nil {
 		return nil, err
 	}
 	return localCASecret.Data[mcconstants.CaCrtKey], nil
