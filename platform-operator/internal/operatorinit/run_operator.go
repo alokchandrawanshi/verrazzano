@@ -4,25 +4,27 @@
 package operatorinit
 
 import (
+	goerrors "errors"
+	"github.com/pkg/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"sync"
-	"time"
-
-	"github.com/pkg/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
+	"io/fs"
 	"k8s.io/apimachinery/pkg/runtime"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sync"
+	"time"
 )
 
 // StartPlatformOperator Platform operator execution entry point
@@ -104,6 +106,16 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 
 	if vzconfig.ExperimentalModules {
 		log.Infof("Experimental Modules API enabled")
+	}
+
+	_, err = os.Stat(config.GetDefaultOperatorYamlFilePath())
+	if err != nil && !goerrors.Is(err, fs.ErrNotExist) {
+		return errors.Wrap(err, "Failed to read operator.yaml")
+	}
+	// operator.yaml exists so create a config map with its contents.
+	if err == nil {
+		log.Info("Found operator.yaml")
+		// TODO: create map
 	}
 
 	// +kubebuilder:scaffold:builder

@@ -30,9 +30,13 @@ const (
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
+const defaultOperatorYamlFilename = "operator.yaml"
 
 // Global override for the default BOM file path
 var bomFilePathOverride string
+
+// Global override for the default operator yaml file path
+var operatorYamlFilePathOverride string
 
 // TestHelmConfigDir is needed for unit tests
 var TestHelmConfigDir string
@@ -230,6 +234,19 @@ func GetDefaultBOMFilePath() string {
 		return bomFilePathOverride
 	}
 	return filepath.Join(GetPlatformDir(), defaultBomFilename)
+}
+
+// SetOperatorYamlFilePath Sets the global default location for the operator yaml file
+func SetOperatorYamlFilePath(p string) {
+	operatorYamlFilePathOverride = p
+}
+
+// GetDefaultOperatorYamlFilePath returns operator yaml file path for the platform operator
+func GetDefaultOperatorYamlFilePath() string {
+	if operatorYamlFilePathOverride != "" {
+		return operatorYamlFilePathOverride
+	}
+	return filepath.Join(GetPlatformDir(), defaultOperatorYamlFilename)
 }
 
 func GetInjectedSystemNamespaces() []string {

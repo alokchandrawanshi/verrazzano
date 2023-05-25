@@ -67,6 +67,7 @@ func main() {
 	// config will hold the entire operator config
 	config := internalconfig.Get()
 	var bomOverride string
+	var operatorYamlOverride string
 
 	flag.StringVar(&config.MetricsAddr, "metrics-addr", config.MetricsAddr, "The address the metric endpoint binds to.")
 	flag.BoolVar(&config.LeaderElectionEnabled, "enable-leader-election", config.LeaderElectionEnabled,
@@ -93,6 +94,7 @@ func main() {
 	flag.Int64Var(&config.MySQLRepairTimeoutSeconds, "mysql-repair-timeout", config.MySQLRepairTimeoutSeconds,
 		"MySQL repair timeout seconds")
 	flag.BoolVar(&config.ExperimentalModules, "experimental-modules", config.ExperimentalModules, "enable experimental modules")
+	flag.StringVar(&operatorYamlOverride, "operator-yaml-path", "", "operator yaml file location")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -107,10 +109,17 @@ func main() {
 	log := zap.S()
 
 	log.Info("Starting Verrazzano Platform Operator")
+
 	// Set the BOM file path for the operator
 	if len(bomOverride) > 0 {
 		log.Infof("Using BOM override file %s", bomOverride)
 		internalconfig.SetDefaultBomFilePath(bomOverride)
+	}
+
+	// Set the operator yaml file path
+	if len(operatorYamlOverride) > 0 {
+		log.Infof("Using operator yaml override file %s", operatorYamlOverride)
+		internalconfig.SetOperatorYamlFilePath(operatorYamlOverride)
 	}
 
 	if !validators.IsKubernetesVersionSupported() {
