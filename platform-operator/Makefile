@@ -202,16 +202,6 @@ push-tag:
 	docker tag "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"; \
 	$(call retry_docker_push,"${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG")
 
-.PHONY: create-test-deploy
-create-test-deploy:
-	if [ -n "${VZ_DEV_IMAGE}" ]; then \
-		IMAGE=$$(echo $${VZ_DEV_IMAGE} | cut -f 1 -d :) ; \
-		IMAGE_TAG=$$(echo $${VZ_DEV_IMAGE} | cut -f 2 -d :) ; \
-		DOCKER_IMAGE_FULLNAME=$${IMAGE} DOCKER_IMAGE_TAG=$${IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$${VZ_APP_OP_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=$${VZ_CLUSTER_OP_IMAGE} $(MAKE) generate-operator-yaml ; \
-	else \
-		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
-	fi
-
 .PHONY: generate-bom
 generate-bom:
 	@echo Generating BOM verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}

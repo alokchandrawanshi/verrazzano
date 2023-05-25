@@ -55,23 +55,19 @@ clean: ## remove coverage and test results
 docker-push: ## build and push all images
 	(cd cluster-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd application-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
-	(cd platform-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
+	(cd platform-operator; make generate-operator-yaml docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
 
 .PHONY: docker-push-debug
 docker-push-debug: ## build and push all images
 	(cd cluster-operator; make docker-push-debug DOCKER_IMAGE_NAME=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd application-operator; make docker-push-debug DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
-	(cd platform-operator; make docker-push-debug DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
+	(cd platform-operator; make generate-operator-yaml docker-push-debug DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
 
 .PHONY: create-test-deploy
-create-test-deploy: docker-push create-test-deploy-common ## build and push all images, then create operator.yaml file for Verrazzano deployment
+create-test-deploy: docker-push ## build and push all images
 
 .PHONY: create-test-deploy-debug
-create-test-deploy-debug: docker-push-debug create-test-deploy-common ## build and push all images, then create operator.yaml file for Verrazzano deployment (debug)
-
-.PHONY: create-test-deploy-common
-create-test-deploy-common: ## create operator.yaml file for Verrazzano deployment
-	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VZ_CLUSTER_OP_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
+create-test-deploy-debug: docker-push-debug ## build and push all images (debug)
 
 .PHONY: test-platform-operator-install
 test-platform-operator-install: ## install VPO from operator.yaml
