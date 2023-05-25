@@ -7,9 +7,7 @@ go 1.19
 
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
-	github.com/cert-manager/cert-manager v1.9.1
-	github.com/crossplane/crossplane-runtime v0.17.0
-	github.com/crossplane/oam-kubernetes-runtime v0.3.3
+	github.com/cert-manager/cert-manager v0.7.2
 	github.com/gertd/go-pluralize v0.2.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -18,35 +16,32 @@ require (
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.6.8
 	github.com/mattn/go-isatty v0.0.16
-	github.com/onsi/ginkgo/v2 v2.6.0
-	github.com/onsi/gomega v1.24.1
+	github.com/onsi/gomega v1.16.0
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.59.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.56.3
 	github.com/prometheus/client_golang v1.13.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.28
 	go.uber.org/zap v1.21.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/text v0.5.0
 	golang.org/x/tools v0.1.12
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.10.3
 	istio.io/api v0.0.0-20221208152505-d807bc07da6a
 	istio.io/client-go v1.15.4
-	k8s.io/api v0.25.4
-	k8s.io/apiextensions-apiserver v0.25.4
-	k8s.io/apimachinery v0.25.4
-	k8s.io/cli-runtime v0.25.2
-	k8s.io/client-go v0.25.4
-	k8s.io/code-generator v0.25.4
-	k8s.io/kubectl v0.25.2
-	sigs.k8s.io/cluster-api v1.3.3
-	sigs.k8s.io/controller-runtime v0.13.1
-	sigs.k8s.io/controller-tools v0.9.2
+	k8s.io/api v0.25.0-alpha.2
+	k8s.io/apiextensions-apiserver v0.25.0-alpha.2
+	k8s.io/apimachinery v0.25.0-alpha.2
+	k8s.io/cli-runtime v0.25.0-alpha.2
+	k8s.io/client-go v0.25.0-alpha.2
+	k8s.io/code-generator v0.25.0-alpha.2
+	k8s.io/kubectl v0.25.0-alpha.2
+	sigs.k8s.io/cluster-api v1.0.5
+	sigs.k8s.io/controller-runtime v0.11.0-beta.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -178,23 +173,27 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.25.4 // indirect
-	k8s.io/cluster-bootstrap v0.25.0 // indirect
-	k8s.io/component-base v0.25.4 // indirect
+	k8s.io/apiserver v0.25.0-alpha.2 // indirect
+	k8s.io/cluster-bootstrap v0.25.0-alpha.2 // indirect
+	k8s.io/component-base v0.25.0-alpha.2 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-aggregator v0.24.2 // indirect
-	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73 // indirect
 	oras.land/oras-go v1.2.0 // indirect
-	sigs.k8s.io/gateway-api v0.4.3 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/kustomize/api v0.12.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
 
-require golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+require (
+	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/nxadm/tail v1.4.8 // indirect
+	github.com/onsi/ginkgo v1.16.5 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
+)
 
 replace (
 	github.com/ajeddeloh/go-json v0.0.0-20200220154158-5ae607161559 => github.com/coreos/go-json v0.0.0-20220325222439-31b2177291ae
