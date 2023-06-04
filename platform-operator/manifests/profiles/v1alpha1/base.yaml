@@ -21,7 +21,7 @@ spec:
                         values:
                           - verrazzano-authproxy
                   topologyKey: kubernetes.io/hostname
-    capi:
+    clusterAPI:
       enabled: false
     certManager:
       enabled: true
@@ -68,8 +68,6 @@ spec:
     clusterIssuer:
       enabled: true
       clusterResourceNamespace: "cert-manager"
-      ca:
-        secretName: "verrazzano-ca-certificate-secret"
     clusterOperator:
       enabled: true
     coherenceOperator:

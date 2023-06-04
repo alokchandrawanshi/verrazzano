@@ -22,7 +22,7 @@ spec:
                     topologyKey: kubernetes.io/hostname
                   weight: 100
             replicas: 1
-    capi:
+    clusterAPI:
       enabled: false
     certManager:
       certificate:
@@ -71,8 +71,6 @@ spec:
     clusterIssuer:
       enabled: true
       clusterResourceNamespace: "cert-manager"
-      ca:
-        secretName: "verrazzano-ca-certificate-secret"
     coherenceOperator:
       enabled: true
     console:
