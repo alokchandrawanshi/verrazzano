@@ -12,7 +12,7 @@ spec:
     - port: http
       relabelings:
       - action: replace
-        replacement: local
+        replacement: managed1
         targetLabel: verrazzano_cluster
 
 
