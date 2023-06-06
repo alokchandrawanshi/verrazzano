@@ -9,6 +9,6 @@ spec:
     matchLabels:
       app: hello-helidon
   podMetricsEndpoints:
-    - targetPort: 8081
+    - port: http
 
 
