@@ -10,5 +10,10 @@ spec:
       app: hello-helidon
   podMetricsEndpoints:
     - port: http
+      relabelings:
+      - action: replace
+        replacement: local
+        targetLabel: verrazzano_cluster
+
 
 
