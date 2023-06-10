@@ -11,6 +11,7 @@ command:
   - "--hostname-strict-https=false"
   - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
   - "--spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true"
+  - "--db-pool-initial-size=10"
 
 fullnameOverride: "keycloak"
 nameOverride: "keycloak"
