@@ -5,11 +5,10 @@ package infra
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/tests/e2e/fluentbit-operator"
 	"testing"
 )
 
 func TestTopology(test *testing.T) {
-	fluentbit_operator.t.RegisterFailHandler()
+	t.RegisterFailHandler()
 	ginkgo.RunSpecs(test, "FluentBit Operator Install Suite")
 }
