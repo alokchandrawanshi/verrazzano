@@ -11,8 +11,9 @@ command:
   - "--hostname-strict-https=false"
   - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
   - "--spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true"
-  - "--db-pool-initial-size=10"
-
+  - "--spi-dblock-jpa-lock-wait-timeout=3600"
+  - "--log-level=DEBUG"
+ 
 fullnameOverride: "keycloak"
 nameOverride: "keycloak"
 
@@ -24,6 +25,12 @@ extraEnv: |
       secretKeyRef:
         name: keycloak-http
         key: password
+  - name: KC_DB_POOL_INITIAL_SIZE
+    value: "20"
+  - name: KC_DB_POOL_MAX_SIZE
+    value: "500"
+  - name: KC_DB_POOL_MIN_SIZE
+    value: "20"
   - name: JAVA_OPTS_APPEND
     value: >-
       -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
