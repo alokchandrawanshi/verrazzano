@@ -12,6 +12,7 @@ command:
   - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
   - "--spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true"
   - "--spi-dblock-jpa-lock-wait-timeout=3600"
+  - "--log-level=INFO,io.agroal.pool:debug,org.hibernate.resource.jdbc.internal:debug"
   - "--log-level=DEBUG"
  
 fullnameOverride: "keycloak"
