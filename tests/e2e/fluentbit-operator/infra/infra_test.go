@@ -35,6 +35,8 @@ func (u FluentBitOperatorEnabledModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 const (
+	waitTimeout                 = 5 * time.Minute
+	pollingInterval             = 5 * time.Second
 	longWaitTimeout             = 20 * time.Minute
 	longPollingInterval         = 20 * time.Second
 	shortPollingInterval        = 10 * time.Second
@@ -54,7 +56,7 @@ var _ = BeforeSuite(beforeSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	m := FluentBitOperatorEnabledModifier{}
-	update.UpdateCR(m)
+	update.UpdateCRWithRetries(m, longPollingInterval, longWaitTimeout)
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN FluentBit operator is enabled,
@@ -65,36 +67,22 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 // GIVEN a VZ custom resource in dev profile,
 // WHEN FluentBit operator is enabled,
-// THEN expect the OpenSearch index for the verrazzano-system exists
-var _ = t.Describe("Verify FluentBit infra", func() {
+// THEN expect the Opensearch index for the verrazzano-system exists
+var _ = t.Describe("Verify FluentBit Post Install infra", func() {
 	t.It("verrazzano-system index is present", func() {
 		Eventually(func() bool {
 			return pkg.LogIndexFound("verrazzano-system")
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 	})
 
-	pkg.Concurrently(
-		func() {
-			// GIVEN an application with logging enabled
-			// WHEN the log records are retrieved from the Opensearch index for hello-helidon-container
-			// THEN verify that at least one recent log record is found
-			t.It("Verify recent Opensearch log record exists", func() {
-				Eventually(func() bool {
-					return pkg.LogRecordFound("verrazzano-system", time.Now().Add(-5*time.Minute), map[string]string{
-						"kubernetes.container_name": "verrazzano-authproxy"})
-				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record for authproxy container")
-			})
-		},
-		func() {
-			// GIVEN an application with logging enabled
-			// WHEN the log records are retrieved from the Opensearch index for other-container
-			// THEN verify that at least one recent log record is found
-			t.It("Verify recent Opensearch log record of other-container exists", func() {
-				Eventually(func() bool {
-					return pkg.LogRecordFound("verrazzano-system", time.Now().Add(-5*time.Minute), map[string]string{
-						"kubernetes.container_name": "verrazzano-authproxy"})
-				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record for authproxy container")
-			})
-		},
-	)
+	// GIVEN an application with logging enabled
+	// WHEN the log records are retrieved from the Opensearch index for hello-helidon-container
+	// THEN verify that at least one recent log record is found
+	t.It("Verify recent Opensearch log record exists", func() {
+		Eventually(func() bool {
+			return pkg.LogRecordFound("verrazzano-system", time.Now().Add(-5*time.Minute), map[string]string{
+				"kubernetes.container_name": "verrazzano-authproxy"})
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record for authproxy container")
+	})
+
 })
