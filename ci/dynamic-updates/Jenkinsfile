@@ -580,7 +580,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluentbit-operator-update"
                     }
                     steps {
-                        runGinkgo('fluentbit-operator')
+                        runGinkgo('fluentbit-operator/infra')
                     }
                     post {
                         always {
