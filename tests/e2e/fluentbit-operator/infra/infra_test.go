@@ -75,8 +75,8 @@ var _ = t.Describe("Verify FluentBit Post Install infra", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 	})
 
-	// GIVEN an application with logging enabled
-	// WHEN the log records are retrieved from the Opensearch index for hello-helidon-container
+	// GIVEN FluentBit operator is enabled,
+	// WHEN the log records are retrieved from the Opensearch verrazzano-system index
 	// THEN verify that at least one recent log record is found
 	t.It("Verify recent Opensearch log record exists", func() {
 		Eventually(func() bool {
