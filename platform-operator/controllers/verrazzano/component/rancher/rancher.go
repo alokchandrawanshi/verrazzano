@@ -64,7 +64,15 @@ const (
 	fleetControllerDeployment = "fleet-controller"
 	gitjobDeployment          = "gitjob"
 	rancherWebhookDeployment  = "rancher-webhook"
+	ociSchemaName             = "ocicredentialconfig"
 )
+
+var cloudCredentialSchemas = []string{
+	ociSchemaName,
+	"azurecredentialconfig",
+	"googlecredentialconfig",
+	"amazonec2credentialconfig",
+}
 
 // Helm Chart setter keys
 const (
@@ -90,14 +98,16 @@ const (
 	caTLSSource                = "secret"
 	caCertsPem                 = "cacerts.pem"
 	caCert                     = "ca.crt"
+	customCACertKey            = "tls.crt"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
 
 const (
+	CAPIMutatingWebhook               = "mutating-webhook-configuration"
+	CAPIValidatingWebhook             = "validating-webhook-configuration"
 	SettingServerURL                  = "server-url"
 	KontainerDriverOKE                = "oraclecontainerengine"
-	NodeDriverOCI                     = "oci"
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	ClusterKind                       = "Cluster"
@@ -186,7 +196,6 @@ const (
 )
 
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
-var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
 var GVKUser = common.GetRancherMgmtAPIGVKForKind("User")
 var GVKGlobalRoleBinding = common.GetRancherMgmtAPIGVKForKind("GlobalRoleBinding")
@@ -231,7 +240,19 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 	Resource: "clusterrepos",
 }
 
-func useAdditionalCAs(acme vzapi.Acme) bool {
+var nodeDriverGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "nodedrivers",
+}
+
+var dynamicSchemaGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "dynamicschemas",
+}
+
+func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
 	return acme.Environment != "production"
 }
 
@@ -400,26 +421,6 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	}
 
 	log.Once("Successfully deleted Rancher local cluster")
-}
-
-// activateDrivers activates the oraclecontainerengine kontainerDriver
-func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
-	okeDriver := unstructured.Unstructured{}
-	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
-	okeDriverName := types.NamespacedName{Name: KontainerDriverOKE}
-	err := c.Get(context.Background(), okeDriverName, &okeDriver)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting OKE Driver: %s", err.Error())
-	}
-
-	okeDriverMerge := client.MergeFrom(okeDriver.DeepCopy())
-	okeDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	err = c.Patch(context.Background(), &okeDriver, okeDriverMerge)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching OKE Driver: %s", err.Error())
-	}
-
-	return nil
 }
 
 // putServerURL updates the server-url Setting
